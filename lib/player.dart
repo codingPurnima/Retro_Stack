@@ -63,6 +63,10 @@ class Player extends RectangleComponent with KeyboardHandler {
     velocity.x = 200;
   }
 
+  void moveDown() {
+    velocity.y = 200;
+  }
+
   void stop() {
     velocity.x = 0;
     velocity.y = 0;
@@ -70,5 +74,10 @@ class Player extends RectangleComponent with KeyboardHandler {
 
   void autoMovement() {
     velocity.x = -velocity.x;
+  }
+
+  void drop() {
+    velocity.x = 0;
+    moveDown();
   }
 }
