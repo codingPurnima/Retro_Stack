@@ -2,7 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 
 class Player extends RectangleComponent with KeyboardHandler {
-  final Vector2 velocity = Vector2.zero();
+  final Vector2 velocity = Vector2(100, 0);
 
   Player({required Vector2 gameSize})
     : _gameSize = gameSize,
@@ -17,10 +17,12 @@ class Player extends RectangleComponent with KeyboardHandler {
 
     if (position.x < 0) {
       position.x = 0;
+      autoMovement();
     }
 
     if (position.x + size.x > _gameSize.x) {
       position.x = _gameSize.x - size.x;
+      autoMovement();
     }
 
     if (position.y < 0) {
@@ -64,5 +66,9 @@ class Player extends RectangleComponent with KeyboardHandler {
   void stop() {
     velocity.x = 0;
     velocity.y = 0;
+  }
+
+  void autoMovement() {
+    velocity.x = -velocity.x;
   }
 }
