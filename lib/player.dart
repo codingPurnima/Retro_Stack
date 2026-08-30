@@ -52,4 +52,17 @@ class Player extends RectangleComponent with KeyboardHandler {
       velocity.y = 200;
     }
   }
+
+  void moveLeft() {
+    velocity.x = -200;
+  }
+
+  void moveRight() {
+    velocity.x = 200;
+  }
+
+  void stop() {
+    velocity.x = 0;
+    velocity.y = 0;
+  }
 }

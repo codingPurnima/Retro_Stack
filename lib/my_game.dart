@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'player.dart';
 
-class MyGame extends FlameGame with KeyboardEvents {
+class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
   late Player player;
 
   @override
@@ -21,6 +21,20 @@ class MyGame extends FlameGame with KeyboardEvents {
   ) {
     player.handleInput(keysPressed);
     return KeyEventResult.handled;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (event.localPosition.x < size.x / 2) {
+      player.moveLeft();
+    } else {
+      player.moveRight();
+    }
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    player.stop();
   }
 }
 
