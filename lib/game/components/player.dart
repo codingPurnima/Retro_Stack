@@ -26,7 +26,7 @@ class Player extends RectangleComponent with KeyboardHandler {
       autoMovementX();
     }
 
-    if (position.y + size.y >= floorY) {
+    if (velocity.y>0 && position.y + size.y >= floorY) {
       position.y = floorY - size.y;
       stopY();
       hasLanded = true;

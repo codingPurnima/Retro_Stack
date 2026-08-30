@@ -7,10 +7,11 @@ import 'components/player.dart';
 
 class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
   late Player player;
+  double floorY = 700;
 
   @override
   Future<void> onLoad() async {
-    player = Player(gameSize: size, floorY: 700);
+    player = Player(gameSize: size, floorY: floorY);
     add(player);
   }
 
@@ -26,5 +27,17 @@ class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     player.drop();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (player.hasLanded) {
+      floorY = player.position.y;
+
+      player = Player(floorY: floorY, gameSize: size);
+
+      add(player);
+    }
   }
 }
