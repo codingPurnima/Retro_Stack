@@ -10,7 +10,7 @@ class MyGame extends FlameGame with KeyboardEvents {
 
   @override
   Future<void> onLoad() async {
-    player = Player();
+    player = Player(gameSize: size);
     add(player);
   }
 
