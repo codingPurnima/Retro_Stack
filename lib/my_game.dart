@@ -32,6 +32,7 @@ class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
   }
 
+// without this, the player keeps moving in the same direction, even when you stop touching the screen.
   @override
   void onTapUp(TapUpEvent event) {
     player.stop();
