@@ -5,11 +5,11 @@ class Box extends RectangleComponent with KeyboardHandler {
   final Vector2 velocity = Vector2(100, 0);
   final Vector2 gameSize;
 
-  double floorY;
   bool hasLanded = false;
+  bool isDropping = false;
 
-  Box({required this.floorY, required this.gameSize})
-    : super(size: Vector2.all(50), position: Vector2(50, 300));
+  Box({required this.gameSize})
+    : super(size: Vector2.all(50), position: Vector2(50, 100));
 
   @override
   void update(double dt) {
@@ -24,12 +24,6 @@ class Box extends RectangleComponent with KeyboardHandler {
     if (position.x + size.x > gameSize.x) {
       position.x = gameSize.x - size.x;
       autoMovementX();
-    }
-
-    if (velocity.y>0 && position.y + size.y >= floorY) {
-      position.y = floorY - size.y;
-      stopY();
-      hasLanded = true;
     }
   }
 
@@ -81,5 +75,6 @@ class Box extends RectangleComponent with KeyboardHandler {
   void drop() {
     velocity.x = 0;
     moveDown();
+    isDropping = true;
   }
 }
