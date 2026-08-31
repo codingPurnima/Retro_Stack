@@ -3,16 +3,16 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'components/player.dart';
+import 'components/box.dart';
 
 class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
-  late Player player;
+  late Box box;
   double floorY = 700;
 
   @override
   Future<void> onLoad() async {
-    player = Player(gameSize: size, floorY: floorY);
-    add(player);
+    box = Box(gameSize: size, floorY: floorY);
+    add(box);
   }
 
   @override
@@ -20,24 +20,24 @@ class MyGame extends FlameGame with KeyboardEvents, TapCallbacks {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    player.handleInput(keysPressed);
+    box.handleInput(keysPressed);
     return KeyEventResult.handled;
   }
 
   @override
   void onTapDown(TapDownEvent event) {
-    player.drop();
+    box.drop();
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    if (player.hasLanded) {
-      floorY = player.position.y;
+    if (box.hasLanded) {
+      floorY = box.position.y;
 
-      player = Player(floorY: floorY, gameSize: size);
+      box = Box(floorY: floorY, gameSize: size);
 
-      add(player);
+      add(box);
     }
   }
 }
