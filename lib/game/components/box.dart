@@ -14,8 +14,8 @@ class Box extends RectangleComponent with CollisionCallbacks {
   final VoidCallback onLanded;
   final Box? targetBox;
 
-  Box({required this.gameSize, required this.onLanded, required this.targetBox})
-    : super(size: Vector2.all(50), position: Vector2(50, 100));
+  Box({required this.gameSize, required this.onLanded, required this.targetBox, required Vector2 position})
+    : super(size: Vector2.all(50), position: position);
 
   @override
   void update(double dt) {
