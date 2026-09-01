@@ -74,7 +74,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
   final double overlapWidth =
       overlapRight - overlapLeft;
 
-  return overlapWidth >= (size.x / 2) ;
+  return overlapWidth >= (size.x / 2) -10;
 }
 
   void moveLeft() {
