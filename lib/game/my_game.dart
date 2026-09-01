@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/effects.dart';
@@ -16,6 +18,11 @@ class MyGame extends FlameGame<MyWorld>
 
   bool gameOver = false;
 
+  final double spawnScreenY = 100; // point where every new box should appear
+  final double cameraTriggerY =
+      150; // move camera up when stack reaches this close to the top
+  final double cameraShift = 250; // move camera this far up
+
   @override
   Future<void> onLoad() async {
     camera.viewfinder.position = size / 2;
@@ -24,13 +31,16 @@ class MyGame extends FlameGame<MyWorld>
       gameSize: size,
       onLanded: boxLanded,
       targetBox: null,
-      position: Vector2(50, 100),
+      position: Vector2(50, spawnScreenY),
     );
     world.add(currentBox);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
+    if (gameOver) {
+      return;
+    }
     if (!currentBox.hasLanded) {
       currentBox.drop();
     }
@@ -52,7 +62,7 @@ class MyGame extends FlameGame<MyWorld>
       checkGroundCollision();
     }
 
-    if (currentBox.position.y > size.y) {
+    if (currentBox.position.y > camera.visibleWorldRect.bottom) {
       gameOver = true;
     }
   }
@@ -70,12 +80,14 @@ class MyGame extends FlameGame<MyWorld>
   }
 
   void spawnNextBox() {
-    final spawnY = camera.visibleWorldRect.top + 50;
+    final Rect visibleWorld = camera.visibleWorldRect;
+    final double spawnWorldY = visibleWorld.top + spawnScreenY;
+
     currentBox = Box(
       gameSize: size,
       onLanded: boxLanded,
       targetBox: lastBox,
-      position: Vector2(50, spawnY),
+      position: Vector2(50, spawnWorldY),
     );
 
     world.add(currentBox);
@@ -84,22 +96,39 @@ class MyGame extends FlameGame<MyWorld>
   void boxLanded() {
     lastBox = currentBox;
 
-    if (isStackNearTop()) {
+    if (shouldMoveCamera()) {
       moveCameraUp();
+      return;
     }
     spawnNextBox();
   }
 
   void moveCameraUp() {
+    final targetCameraY =
+        camera.viewfinder.position.y - cameraShift;
+
     camera.viewfinder.add(
-    MoveByEffect(
-      Vector2(0, -200),
-      EffectController(duration: 0.5),
-    ),
-  );
+      MoveEffect.to(
+        Vector2(
+          camera.viewfinder.position.x,
+          targetCameraY,
+        ),
+        EffectController(
+          duration: 0.5,
+        ),
+        onComplete: () {
+          spawnNextBox();
+        },
+      ),
+    );
   }
 
-  bool isStackNearTop() {
-    return lastBox!.position.y <= camera.visibleWorldRect.top + 100;
+  bool shouldMoveCamera() {
+    final double stackTop = lastBox!.position.y;
+
+    final double visibleTop =
+        camera.visibleWorldRect.top;
+
+    return stackTop <= visibleTop + cameraTriggerY+ lastBox!.size.y;
   }
 }
