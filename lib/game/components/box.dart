@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
@@ -46,13 +47,35 @@ class Box extends RectangleComponent with CollisionCallbacks {
   ) {
     super.onCollisionStart(intersectionPoints, other);
     if (other == targetBox && isDropping && !hasLanded) {
-      stopY();
-      isDropping = false;
-      hasLanded = true;
+      if(hasValidOverlap(targetBox!)){
+        stopY();
+        isDropping = false;
+        hasLanded = true;
 
-      onLanded();
+        onLanded();
+      }
     }
   }
+
+  bool hasValidOverlap(Box target) {
+  final double currentLeft = position.x;
+  final double currentRight = position.x + size.x;
+
+  final double targetLeft = target.position.x;
+  final double targetRight =
+      target.position.x + target.size.x;
+
+  final double overlapLeft =
+      max(currentLeft, targetLeft);
+
+  final double overlapRight =
+      min(currentRight, targetRight);
+
+  final double overlapWidth =
+      overlapRight - overlapLeft;
+
+  return overlapWidth >= (size.x / 2) ;
+}
 
   void moveLeft() {
     velocity.x = -200;
