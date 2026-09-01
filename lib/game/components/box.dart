@@ -1,14 +1,20 @@
+import 'dart:async';
+
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 
-class Box extends RectangleComponent with KeyboardHandler {
+class Box extends RectangleComponent with CollisionCallbacks {
   final Vector2 velocity = Vector2(100, 0);
   final Vector2 gameSize;
 
   bool hasLanded = false;
   bool isDropping = false;
 
-  Box({required this.gameSize})
+  final VoidCallback onLanded;
+  final Box? targetBox;
+
+  Box({required this.gameSize, required this.onLanded, required this.targetBox})
     : super(size: Vector2.all(50), position: Vector2(50, 100));
 
   @override
@@ -27,24 +33,24 @@ class Box extends RectangleComponent with KeyboardHandler {
     }
   }
 
-  void handleInput(Set<LogicalKeyboardKey> keysPressed) {
-    velocity.x = 0;
-    velocity.y = 0;
+  @override
+  FutureOr<void> onLoad() async {
+    await super.onLoad();
+    add(RectangleHitbox());
+  }
 
-    if (keysPressed.contains(LogicalKeyboardKey.arrowRight)) {
-      velocity.x = 200;
-    }
+  @override
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
+    super.onCollisionStart(intersectionPoints, other);
+    if (other == targetBox && isDropping && !hasLanded) {
+      stopY();
+      isDropping = false;
+      hasLanded = true;
 
-    if (keysPressed.contains(LogicalKeyboardKey.arrowLeft)) {
-      velocity.x = -200;
-    }
-
-    if (keysPressed.contains(LogicalKeyboardKey.arrowUp)) {
-      velocity.y = -200;
-    }
-
-    if (keysPressed.contains(LogicalKeyboardKey.arrowDown)) {
-      velocity.y = 200;
+      onLanded();
     }
   }
 

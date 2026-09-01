@@ -3,7 +3,7 @@ import 'package:flame/game.dart';
 
 import 'components/box.dart';
 
-class MyGame extends FlameGame with TapCallbacks {
+class MyGame extends FlameGame with TapCallbacks, HasCollisionDetection {
   late Box currentBox;
   Box? lastBox;
   final double groundY = 700;
@@ -13,13 +13,15 @@ class MyGame extends FlameGame with TapCallbacks {
 
   @override
   Future<void> onLoad() async {
-    currentBox = Box(gameSize: size);
+    currentBox = Box(gameSize: size, onLanded: boxLanded, targetBox: null);
     add(currentBox);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
-    currentBox.drop();
+    if (!currentBox.hasLanded) {
+      currentBox.drop();
+    }
   }
 
   @override
@@ -36,8 +38,6 @@ class MyGame extends FlameGame with TapCallbacks {
 
     if (lastBox == null) {
       checkGroundCollision();
-    } else {
-      checkBoxCollision();
     }
 
     if (currentBox.position.y > size.y) {
@@ -53,49 +53,18 @@ class MyGame extends FlameGame with TapCallbacks {
       currentBox.hasLanded = true;
       currentBox.isDropping = false;
 
-      lastBox = currentBox;
-
-      spawnNextBox();
-    }
-  }
-
-  void checkBoxCollision() {
-    final currentBottom = currentBox.position.y + currentBox.size.y;
-
-    final currentLeft = currentBox.position.x;
-
-    final currentRight = currentBox.position.x + currentBox.size.x;
-
-    final previousTop = lastBox!.position.y;
-
-    final previousLeft = lastBox!.position.x;
-
-    final previousRight = lastBox!.position.x + lastBox!.size.x;
-
-    final isHorizontallyOverlapping =
-        currentLeft < previousRight && currentRight > previousLeft;
-
-    if (currentBottom >= previousTop && isHorizontallyOverlapping) {
-      currentBox.position.y = previousTop - currentBox.size.y;
-
-      currentBox.velocity.y = 0;
-      currentBox.hasLanded = true;
-      currentBox.isDropping = false;
-
-      lastBox = currentBox;
-
-      spawnNextBox();
+      boxLanded();
     }
   }
 
   void spawnNextBox() {
-    if (lastBox!.position.y <= spawnLimitY) {
-      gameOver = true;
-      return;
-    }
-
-    currentBox = Box(gameSize: size);
+    currentBox = Box(gameSize: size, onLanded: boxLanded, targetBox: lastBox);
 
     add(currentBox);
+  }
+
+  void boxLanded() {
+    lastBox = currentBox;
+    spawnNextBox();
   }
 }
