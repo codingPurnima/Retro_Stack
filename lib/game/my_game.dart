@@ -62,16 +62,13 @@ class MyGame extends FlameGame<MyWorld>
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (gameOver) {
-      restartGame();
-      return;
-    }
     if (!currentBox.hasLanded) {
       currentBox.drop();
     }
   }
 
   void restartGame() {
+    overlays.remove("GameOver");
     gameOver = false;
 
     score = 0;
@@ -86,11 +83,11 @@ class MyGame extends FlameGame<MyWorld>
 
   @override
   void update(double dt) {
-    super.update(dt);
-
     if (gameOver) {
       return;
     }
+
+    super.update(dt);
 
     if (!currentBox.isDropping) {
       return;
@@ -101,9 +98,15 @@ class MyGame extends FlameGame<MyWorld>
     }
 
     if (currentBox.position.y > camera.visibleWorldRect.bottom) {
-      gameOver = true;
-      print(gameOver);
+      endGame();
     }
+  }
+
+  void endGame() {
+    gameOver = true;
+    currentBox.velocity.setZero();
+    currentBox.isDropping = false;
+    overlays.add('GameOver');
   }
 
   void checkGroundCollision() {
