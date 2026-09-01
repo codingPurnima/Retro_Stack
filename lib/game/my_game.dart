@@ -1,11 +1,13 @@
 import 'dart:ui';
 
+import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/effects.dart';
 
-import 'package:retro_stack_frontend/game/my_world.dart';
+import 'package:flutter/material.dart';
 
+import 'package:retro_stack_frontend/game/my_world.dart';
 import 'components/box.dart';
 
 class MyGame extends FlameGame<MyWorld>
@@ -23,9 +25,28 @@ class MyGame extends FlameGame<MyWorld>
       150; // move camera up when stack reaches this close to the top
   final double cameraShift = 250; // move camera this far up
 
+  int score = 0;
+  late TextComponent scoreText;
+
   @override
   Future<void> onLoad() async {
     camera.viewfinder.position = size / 2;
+
+    scoreText = TextComponent(
+      text: '0',
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          fontSize: 32,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      anchor: Anchor.topCenter,
+      position: Vector2(size.x / 2, 20),
+    );
+
+    camera.viewport.add(scoreText);
+
     spawnFirstBox();
   }
 
@@ -52,6 +73,10 @@ class MyGame extends FlameGame<MyWorld>
 
   void restartGame() {
     gameOver = false;
+
+    score = 0;
+    scoreText.text = '0';
+
     camera.stop();
     camera.viewfinder.position = size / 2;
     world.removeAll(world.children.toList());
@@ -109,6 +134,9 @@ class MyGame extends FlameGame<MyWorld>
 
   void boxLanded() {
     lastBox = currentBox;
+
+    score++;
+    scoreText.text = '$score';
 
     if (shouldMoveCamera()) {
       moveCameraUp();
