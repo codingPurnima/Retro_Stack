@@ -26,7 +26,10 @@ class MyGame extends FlameGame<MyWorld>
   @override
   Future<void> onLoad() async {
     camera.viewfinder.position = size / 2;
+    spawnFirstBox();
+  }
 
+  void spawnFirstBox() {
     currentBox = Box(
       gameSize: size,
       onLanded: boxLanded,
@@ -39,11 +42,21 @@ class MyGame extends FlameGame<MyWorld>
   @override
   void onTapDown(TapDownEvent event) {
     if (gameOver) {
+      restartGame();
       return;
     }
     if (!currentBox.hasLanded) {
       currentBox.drop();
     }
+  }
+
+  void restartGame() {
+    gameOver = false;
+    camera.stop();
+    camera.viewfinder.position = size / 2;
+    world.removeAll(world.children.toList());
+    lastBox = null;
+    spawnFirstBox();
   }
 
   @override
@@ -64,6 +77,7 @@ class MyGame extends FlameGame<MyWorld>
 
     if (currentBox.position.y > camera.visibleWorldRect.bottom) {
       gameOver = true;
+      print(gameOver);
     }
   }
 
@@ -104,18 +118,12 @@ class MyGame extends FlameGame<MyWorld>
   }
 
   void moveCameraUp() {
-    final targetCameraY =
-        camera.viewfinder.position.y - cameraShift;
+    final targetCameraY = camera.viewfinder.position.y - cameraShift;
 
     camera.viewfinder.add(
       MoveEffect.to(
-        Vector2(
-          camera.viewfinder.position.x,
-          targetCameraY,
-        ),
-        EffectController(
-          duration: 0.5,
-        ),
+        Vector2(camera.viewfinder.position.x, targetCameraY),
+        EffectController(duration: 0.5),
         onComplete: () {
           spawnNextBox();
         },
@@ -126,9 +134,8 @@ class MyGame extends FlameGame<MyWorld>
   bool shouldMoveCamera() {
     final double stackTop = lastBox!.position.y;
 
-    final double visibleTop =
-        camera.visibleWorldRect.top;
+    final double visibleTop = camera.visibleWorldRect.top;
 
-    return stackTop <= visibleTop + cameraTriggerY+ lastBox!.size.y;
+    return stackTop <= visibleTop + cameraTriggerY + lastBox!.size.y;
   }
 }
