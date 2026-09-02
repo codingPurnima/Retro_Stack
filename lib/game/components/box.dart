@@ -17,6 +17,8 @@ class Box extends RectangleComponent with CollisionCallbacks {
   final Pendulum pendulum;
   bool isAttached = true;
 
+  final double pendulumSpeedMultiplier;
+
   // FALLING
   final Vector2 velocity = Vector2.zero();
   final double gravity = 900;
@@ -29,6 +31,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
     required this.onLanded,
     required this.targetBox,
     required Vector2 position,
+    this.pendulumSpeedMultiplier=1.0,
 
     double stringLength = 200,
     double pendulumGravity = 900,
@@ -41,6 +44,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
          damping: damping,
          angle: initialAngle,
          angularVelocity: initialAngularVelocity,
+         speedMultiplier: pendulumSpeedMultiplier,
        ),
        super(size: Vector2.all(50), position: position) {
     pivot = Vector2(position.x + size.x / 2, position.y - stringLength);
@@ -93,9 +97,9 @@ class Box extends RectangleComponent with CollisionCallbacks {
     // This makes the release feel more natural for the
     // stacking mechanic instead of allowing the box to
     // momentarily move upward.
-    if (velocity.y < 0) {
-      velocity.y = 0;
-    }
+    // if (velocity.y < 0) {
+    //   velocity.y = 0;
+    // }
 
     // The string is now detached.
     isAttached = false;
@@ -158,10 +162,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
         ..strokeWidth = 3;
 
       // Box's top-center in local coordinates.
-      final Offset boxTopCenter = Offset(
-        size.x / 2,
-        0,
-      );
+      final Offset boxTopCenter = Offset(size.x / 2, 0);
 
       // Convert the world-space pivot into the Box's
       // local coordinate system.
@@ -170,11 +171,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
         pivot.y - position.y,
       );
 
-      canvas.drawLine(
-        localPivot,
-        boxTopCenter,
-        paint,
-      );
+      canvas.drawLine(localPivot, boxTopCenter, paint);
     }
 
     super.render(canvas);

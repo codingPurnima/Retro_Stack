@@ -18,12 +18,15 @@ class Pendulum {
   /// Current angular velocity in radians/second.
   double angularVelocity;
 
+  double speedMultiplier;
+
   Pendulum({
     required this.stringLength,
     this.gravity = 900,
     this.damping = 0.08,
     this.angle = 0.45,
     this.angularVelocity = 0,
+    this.speedMultiplier=1.0,
   });
 
   /// Advances the pendulum physics by [dt] seconds.
@@ -36,8 +39,8 @@ class Pendulum {
     // The second part removes a small amount of energy.
 
     final double angularAcceleration =
-        -(gravity / stringLength) * sin(angle) -
-        damping * angularVelocity;
+        (-(gravity / stringLength) * sin(angle) -
+        damping * angularVelocity)* speedMultiplier;
 
     // Semi-implicit Euler integration.
     //

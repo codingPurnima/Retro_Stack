@@ -53,6 +53,7 @@ class MyGame extends FlameGame<MyWorld>
       onLanded: boxLanded,
       targetBox: null,
       position: Vector2(size.x / 2 - 25, spawnScreenY),
+      pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
     world.add(currentBox);
   }
@@ -117,7 +118,7 @@ class MyGame extends FlameGame<MyWorld>
       boxLanded();
     }
   }
-  
+
   void spawnNextBox() {
     final Rect visibleWorld = camera.visibleWorldRect;
     final double spawnWorldY = visibleWorld.top + spawnScreenY;
@@ -127,6 +128,7 @@ class MyGame extends FlameGame<MyWorld>
       onLanded: boxLanded,
       targetBox: lastBox,
       position: Vector2(size.x / 2 - 25, spawnWorldY),
+      pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
 
     world.add(currentBox);
@@ -168,5 +170,9 @@ class MyGame extends FlameGame<MyWorld>
     final double visibleTop = camera.visibleWorldRect.top;
 
     return stackTop <= visibleTop + cameraTriggerY + lastBox!.size.y;
+  }
+
+  double get pendulumSpeedMultiplier {
+    return 1.0 + (score ~/ 7) * 0.15; // every 7 successful boxes, pendulum gets 15% faster
   }
 }
