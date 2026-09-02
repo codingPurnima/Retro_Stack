@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -23,7 +21,6 @@ class MyGame extends FlameGame<MyWorld>
   final double spawnScreenY = 100; // point where every new box should appear
   final double cameraTriggerY =
       150; // move camera up when stack reaches this close to the top
-  final double cameraShift = 250; // move camera this far up
 
   int score = 0;
   late TextComponent scoreText;
@@ -55,7 +52,7 @@ class MyGame extends FlameGame<MyWorld>
       gameSize: size,
       onLanded: boxLanded,
       targetBox: null,
-      position: Vector2(50, spawnScreenY),
+      position: Vector2(size.x / 2 - 25, spawnScreenY),
     );
     world.add(currentBox);
   }
@@ -120,7 +117,7 @@ class MyGame extends FlameGame<MyWorld>
       boxLanded();
     }
   }
-
+  
   void spawnNextBox() {
     final Rect visibleWorld = camera.visibleWorldRect;
     final double spawnWorldY = visibleWorld.top + spawnScreenY;
@@ -129,7 +126,7 @@ class MyGame extends FlameGame<MyWorld>
       gameSize: size,
       onLanded: boxLanded,
       targetBox: lastBox,
-      position: Vector2(50, spawnWorldY),
+      position: Vector2(size.x / 2 - 25, spawnWorldY),
     );
 
     world.add(currentBox);
@@ -149,7 +146,10 @@ class MyGame extends FlameGame<MyWorld>
   }
 
   void moveCameraUp() {
-    final targetCameraY = camera.viewfinder.position.y - cameraShift;
+    final double targetStackScreenY = size.y - 250;
+    // final targetCameraY = camera.viewfinder.position.y - cameraShift;
+    final targetCameraY =
+        lastBox!.position.y - (targetStackScreenY - size.y / 2);
 
     camera.viewfinder.add(
       MoveEffect.to(
