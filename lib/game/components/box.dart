@@ -3,35 +3,47 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+import 'package:retro_stack_frontend/game/components/pendulum.dart';
 
 class Box extends RectangleComponent with CollisionCallbacks {
-  final Vector2 velocity = Vector2(100, 0);
   final Vector2 gameSize;
-
-  bool hasLanded = false;
-  bool isDropping = false;
 
   final VoidCallback onLanded;
   final Box? targetBox;
 
-  Box({required this.gameSize, required this.onLanded, required this.targetBox, required Vector2 position})
-    : super(size: Vector2.all(50), position: position);
+  // PENDULUM
+  late Vector2 pivot;
+  final Pendulum pendulum;
+  bool isAttached = true;
 
-  @override
-  void update(double dt) {
-    super.update(dt);
-    position += velocity * dt;
+  // FALLING
+  final Vector2 velocity = Vector2.zero();
+  final double gravity = 900;
 
-    if (position.x < 0) {
-      position.x = 0;
-      autoMovementX();
-    }
+  bool hasLanded = false;
+  bool isDropping = false;
 
-    if (position.x + size.x > gameSize.x) {
-      position.x = gameSize.x - size.x;
-      autoMovementX();
-    }
+  Box({
+    required this.gameSize,
+    required this.onLanded,
+    required this.targetBox,
+    required Vector2 position,
+
+    double stringLength = 200,
+    double pendulumGravity = 900,
+    double damping = 0.08,
+    double initialAngle = 0.35,
+    double initialAngularVelocity = 0,
+  }) : pendulum = Pendulum(
+         stringLength: stringLength,
+         gravity: pendulumGravity,
+         damping: damping,
+         angle: initialAngle,
+         angularVelocity: initialAngularVelocity,
+       ),
+       super(size: Vector2.all(50), position: position) {
+    pivot = Vector2(position.x + size.x / 2, position.y - stringLength);
   }
 
   @override
@@ -41,14 +53,71 @@ class Box extends RectangleComponent with CollisionCallbacks {
   }
 
   @override
+  void update(double dt) {
+    super.update(dt);
+    if (isAttached) {
+      updatePendulum(dt);
+    } else if (isDropping) {
+      updateFalling(dt);
+    }
+  }
+
+  void updatePendulum(double dt) {
+    pendulum.update(dt);
+
+    final Vector2 bobOffset = pendulum.bobOffset;
+
+    // bobOffset represents the position of the box's top-center relative to the pivot.
+
+    final double boxCenterX = pivot.x + bobOffset.x;
+
+    final double boxTopY = pivot.y + bobOffset.y;
+
+    position.x = boxCenterX - size.x / 2;
+
+    position.y = boxTopY;
+  }
+
+  void drop() {
+    if (!isAttached || hasLanded) {
+      return;
+    }
+
+    // Get the actual linear velocity produced by the physical pendulum at the moment of release.
+    final Vector2 releaseVelocity = pendulum.linearVelocity;
+
+    velocity.setFrom(releaseVelocity);
+
+    // Add a little downward velocity.
+    //
+    // This makes the release feel more natural for the
+    // stacking mechanic instead of allowing the box to
+    // momentarily move upward.
+    if (velocity.y < 0) {
+      velocity.y = 0;
+    }
+
+    // The string is now detached.
+    isAttached = false;
+    isDropping = true;
+  }
+
+  void updateFalling(double dt) {
+    velocity.y += gravity * dt;
+
+    position += velocity * dt;
+  }
+
+  @override
   void onCollisionStart(
     Set<Vector2> intersectionPoints,
     PositionComponent other,
   ) {
     super.onCollisionStart(intersectionPoints, other);
     if (other == targetBox && isDropping && !hasLanded) {
-      if(hasValidOverlap(targetBox!)){
+      if (hasValidOverlap(targetBox!)) {
         stopY();
+        position.y = targetBox!.position.y - size.y;
         isDropping = false;
         hasLanded = true;
 
@@ -58,35 +127,19 @@ class Box extends RectangleComponent with CollisionCallbacks {
   }
 
   bool hasValidOverlap(Box target) {
-  final double currentLeft = position.x;
-  final double currentRight = position.x + size.x;
+    final double currentLeft = position.x;
+    final double currentRight = position.x + size.x;
 
-  final double targetLeft = target.position.x;
-  final double targetRight =
-      target.position.x + target.size.x;
+    final double targetLeft = target.position.x;
+    final double targetRight = target.position.x + target.size.x;
 
-  final double overlapLeft =
-      max(currentLeft, targetLeft);
+    final double overlapLeft = max(currentLeft, targetLeft);
 
-  final double overlapRight =
-      min(currentRight, targetRight);
+    final double overlapRight = min(currentRight, targetRight);
 
-  final double overlapWidth =
-      overlapRight - overlapLeft;
+    final double overlapWidth = overlapRight - overlapLeft;
 
-  return overlapWidth >= (size.x / 2) -10;
-}
-
-  void moveLeft() {
-    velocity.x = -200;
-  }
-
-  void moveRight() {
-    velocity.x = 200;
-  }
-
-  void moveDown() {
-    velocity.y = 200;
+    return overlapWidth >= (size.x / 2) - 10;
   }
 
   void stopX() {
@@ -97,13 +150,33 @@ class Box extends RectangleComponent with CollisionCallbacks {
     velocity.y = 0;
   }
 
-  void autoMovementX() {
-    velocity.x = -velocity.x;
-  }
+  @override
+  void render(Canvas canvas) {
+    if (isAttached) {
+      final Paint paint = Paint()
+        ..color = Colors.white
+        ..strokeWidth = 3;
 
-  void drop() {
-    velocity.x = 0;
-    moveDown();
-    isDropping = true;
+      // Box's top-center in local coordinates.
+      final Offset boxTopCenter = Offset(
+        size.x / 2,
+        0,
+      );
+
+      // Convert the world-space pivot into the Box's
+      // local coordinate system.
+      final Offset localPivot = Offset(
+        pivot.x - position.x,
+        pivot.y - position.y,
+      );
+
+      canvas.drawLine(
+        localPivot,
+        boxTopCenter,
+        paint,
+      );
+    }
+
+    super.render(canvas);
   }
 }
