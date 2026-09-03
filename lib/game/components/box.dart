@@ -25,19 +25,21 @@ class Box extends RectangleComponent with CollisionCallbacks {
 
   bool hasLanded = false;
   bool isDropping = false;
+  bool isInStack = false;
 
   Box({
     required this.gameSize,
     required this.onLanded,
     required this.targetBox,
     required Vector2 position,
-    this.pendulumSpeedMultiplier=1.0,
+    this.pendulumSpeedMultiplier = 1.0,
 
     double stringLength = 200,
     double pendulumGravity = 900,
     double damping = 0.08,
     double initialAngle = 0.35,
     double initialAngularVelocity = 0,
+    double energyRecovery= 0.90,
   }) : pendulum = Pendulum(
          stringLength: stringLength,
          gravity: pendulumGravity,
@@ -45,6 +47,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
          angle: initialAngle,
          angularVelocity: initialAngularVelocity,
          speedMultiplier: pendulumSpeedMultiplier,
+         energyRecovery: energyRecovery,
        ),
        super(size: Vector2.all(50), position: position) {
     pivot = Vector2(position.x + size.x / 2, position.y - stringLength);
@@ -59,9 +62,10 @@ class Box extends RectangleComponent with CollisionCallbacks {
   @override
   void update(double dt) {
     super.update(dt);
+
     if (isAttached) {
       updatePendulum(dt);
-    } else if (isDropping) {
+    } else if (isDropping && !isInStack) {
       updateFalling(dt);
     }
   }
@@ -124,6 +128,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
         position.y = targetBox!.position.y - size.y;
         isDropping = false;
         hasLanded = true;
+        isInStack = true;
 
         onLanded();
       }
@@ -138,12 +143,15 @@ class Box extends RectangleComponent with CollisionCallbacks {
     final double targetRight = target.position.x + target.size.x;
 
     final double overlapLeft = max(currentLeft, targetLeft);
-
     final double overlapRight = min(currentRight, targetRight);
 
-    final double overlapWidth = overlapRight - overlapLeft;
+    final double overlapWidth = max(0.0, overlapRight - overlapLeft);
 
-    return overlapWidth >= (size.x / 2) - 10;
+    final double requiredRatio = size.x * 0.60;
+    const double epsilon = 0.5;
+
+    final bool valid = overlapWidth + epsilon >= requiredRatio;
+    return valid;
   }
 
   void stopX() {
