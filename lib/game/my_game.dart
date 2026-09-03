@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'package:retro_stack_frontend/game/my_world.dart';
 import 'components/box.dart';
+import 'components/game_stack.dart';
 
 class MyGame extends FlameGame<MyWorld>
     with TapCallbacks, HasCollisionDetection {
@@ -15,6 +16,8 @@ class MyGame extends FlameGame<MyWorld>
   late Box currentBox;
   Box? lastBox;
   final double groundY = 700;
+
+  late GameStack stack;
 
   bool gameOver = false;
 
@@ -43,6 +46,9 @@ class MyGame extends FlameGame<MyWorld>
     );
 
     camera.viewport.add(scoreText);
+
+    stack = GameStack();
+    world.add(stack);
 
     spawnFirstBox();
   }
@@ -76,6 +82,9 @@ class MyGame extends FlameGame<MyWorld>
     camera.viewfinder.position = size / 2;
     world.removeAll(world.children.toList());
     lastBox = null;
+
+    stack = GameStack();
+    world.add(stack);
     spawnFirstBox();
   }
 
@@ -87,16 +96,24 @@ class MyGame extends FlameGame<MyWorld>
 
     super.update(dt);
 
-    if (!currentBox.isDropping) {
-      return;
-    }
-
-    if (lastBox == null) {
+    if (currentBox.isDropping &&
+        lastBox == null) {
       checkGroundCollision();
     }
 
-    if (currentBox.position.y > camera.visibleWorldRect.bottom) {
-      endGame();
+    /*
+    * Any box that falls below the visible world
+    * means the tower has collapsed badly enough
+    * to end the game.
+    */
+    for (final component in world.children) {
+      if (component is Box &&
+          component.isDropping &&
+          component.position.y >
+              camera.visibleWorldRect.bottom + 100) {
+        endGame();
+        break;
+      }
     }
   }
 
@@ -137,6 +154,8 @@ class MyGame extends FlameGame<MyWorld>
   void boxLanded() {
     lastBox = currentBox;
 
+    stack.addBox(currentBox);
+
     score++;
     scoreText.text = '$score';
 
@@ -173,6 +192,8 @@ class MyGame extends FlameGame<MyWorld>
   }
 
   double get pendulumSpeedMultiplier {
-    return 1.0 + (score ~/ 7) * 0.15; // every 7 successful boxes, pendulum gets 15% faster
+    return 1.0 +
+        (score ~/ 7) *
+            0.15; // every 7 successful boxes, pendulum gets 15% faster
   }
 }
