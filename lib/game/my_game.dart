@@ -15,13 +15,13 @@ class MyGame extends FlameGame<MyWorld>
   static const double virtualHeight = 750;
 
   MyGame()
-      : super(
-          world: MyWorld(),
-          camera: CameraComponent.withFixedResolution(
-            width: virtualWidth,
-            height: virtualHeight,
-          ),
-        );
+    : super(
+        world: MyWorld(),
+        camera: CameraComponent.withFixedResolution(
+          width: virtualWidth,
+          height: virtualHeight,
+        ),
+      );
 
   late Box currentBox;
   Box? lastBox;
@@ -106,8 +106,7 @@ class MyGame extends FlameGame<MyWorld>
 
     super.update(dt);
 
-    if (currentBox.isDropping &&
-        lastBox == null) {
+    if (currentBox.isDropping && lastBox == null) {
       checkGroundCollision();
     }
 
@@ -119,8 +118,7 @@ class MyGame extends FlameGame<MyWorld>
     for (final component in world.children) {
       if (component is Box &&
           component.isDropping &&
-          component.position.y >
-              camera.visibleWorldRect.bottom + 100) {
+          component.position.y > camera.visibleWorldRect.bottom + 100) {
         endGame();
         break;
       }
