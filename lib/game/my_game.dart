@@ -6,6 +6,7 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
 import 'package:retro_stack_frontend/game/my_world.dart';
+import 'package:retro_stack_frontend/theme/colors.dart';
 import 'components/box.dart';
 import 'components/game_stack.dart';
 
@@ -13,6 +14,9 @@ class MyGame extends FlameGame<MyWorld>
     with TapCallbacks, HasCollisionDetection {
   static const double virtualWidth = 480;
   static const double virtualHeight = 750;
+
+  @override
+  Color backgroundColor() => RetroColors.lcdDarkest.withValues(alpha: 0.95);
 
   MyGame()
     : super(
