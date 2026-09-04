@@ -64,6 +64,9 @@ class GameStack extends Component {
   /// when the box becomes part of the stack.
   final Map<Box, Vector2> _localPositions = {};
 
+  /// Active clusters of boxes currently toppling over in a rotational arc.
+  final List<TopplingGroup> _topplingGroups = [];
+
   GameStack({
     this.gravity = 135,
     this.angularDamping = 5.0,
@@ -123,6 +126,9 @@ class GameStack extends Component {
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Update active rotational topple animations
+    _updateTopplingGroups(dt);
 
     if (boxes.length < 2) {
       return;
