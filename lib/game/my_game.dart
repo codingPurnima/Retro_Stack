@@ -108,7 +108,10 @@ class MyGame extends FlameGame<MyWorld>
       return;
     }
 
-    super.update(dt);
+    // Clamp dt to avoid physics explosions during cold startup lag or frame spikes
+    final double clampedDt = dt.clamp(0.0, 1.0 / 30.0);
+
+    super.update(clampedDt);
 
     if (currentBox.isDropping && lastBox == null) {
       checkGroundCollision();

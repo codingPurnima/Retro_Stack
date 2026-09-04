@@ -34,6 +34,9 @@ class Pendulum {
 
   /// Advances the pendulum physics by [dt] seconds.
   void update(double dt) {
+    // Clamp dt to avoid physics explosions during frame rate spikes
+    final double clampedDt = dt.clamp(0.0, 1.0 / 30.0);
+
     final double gravityAcceleration = -(gravity / stringLength) * sin(angle);
 
     final double dampingAcceleration = -damping * angularVelocity;
@@ -45,6 +48,7 @@ class Pendulum {
     //
     // The first part is gravity.
     // The second part removes a small amount of energy.
+    //
 
     final double angularAcceleration =
         (gravityAcceleration + dampingAcceleration) *
@@ -53,7 +57,7 @@ class Pendulum {
     // Semi-implicit Euler integration.
     //
     // Update velocity first, then position.
-    angularVelocity += angularAcceleration * dt;
+    angularVelocity += angularAcceleration * clampedDt;
 
     /*
      * Prevent the pendulum from losing too much of its motion.
@@ -69,10 +73,16 @@ class Pendulum {
           speedMultiplier;
 
       angularVelocity +=
-          dampingRecovery * dt;
+          dampingRecovery * clampedDt;
     }
 
-    angle += angularVelocity * dt;
+    // Safety guardrails against numerical runaway
+    angularVelocity = angularVelocity.clamp(-6.0, 6.0);
+
+    angle += angularVelocity * clampedDt;
+
+    // Keep angle within physical swing limits (~±48 degrees)
+    angle = angle.clamp(-0.85, 0.85);
   }
 
   /// Returns the position of the end of the string relative
