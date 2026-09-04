@@ -11,11 +11,21 @@ import 'components/game_stack.dart';
 
 class MyGame extends FlameGame<MyWorld>
     with TapCallbacks, HasCollisionDetection {
-  MyGame() : super(world: MyWorld());
+  static const double virtualWidth = 480;
+  static const double virtualHeight = 750;
+
+  MyGame()
+      : super(
+          world: MyWorld(),
+          camera: CameraComponent.withFixedResolution(
+            width: virtualWidth,
+            height: virtualHeight,
+          ),
+        );
 
   late Box currentBox;
   Box? lastBox;
-  final double groundY = 700;
+  final double groundY = 730;
 
   late GameStack stack;
 
@@ -30,7 +40,7 @@ class MyGame extends FlameGame<MyWorld>
 
   @override
   Future<void> onLoad() async {
-    camera.viewfinder.position = size / 2;
+    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
     scoreText = TextComponent(
       text: '0',
@@ -42,7 +52,7 @@ class MyGame extends FlameGame<MyWorld>
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 20),
+      position: Vector2(virtualWidth / 2, 20),
     );
 
     camera.viewport.add(scoreText);
@@ -55,10 +65,10 @@ class MyGame extends FlameGame<MyWorld>
 
   void spawnFirstBox() {
     currentBox = Box(
-      gameSize: size,
+      gameSize: Vector2(virtualWidth, virtualHeight),
       onLanded: boxLanded,
       targetBox: null,
-      position: Vector2(size.x / 2 - 25, spawnScreenY),
+      position: Vector2(virtualWidth / 2 - 25, spawnScreenY),
       pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
     world.add(currentBox);
@@ -79,7 +89,7 @@ class MyGame extends FlameGame<MyWorld>
     scoreText.text = '0';
 
     camera.stop();
-    camera.viewfinder.position = size / 2;
+    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
     world.removeAll(world.children.toList());
     lastBox = null;
 
@@ -141,10 +151,10 @@ class MyGame extends FlameGame<MyWorld>
     final double spawnWorldY = visibleWorld.top + spawnScreenY;
 
     currentBox = Box(
-      gameSize: size,
+      gameSize: Vector2(virtualWidth, virtualHeight),
       onLanded: boxLanded,
       targetBox: lastBox,
-      position: Vector2(size.x / 2 - 25, spawnWorldY),
+      position: Vector2(virtualWidth / 2 - 25, spawnWorldY),
       pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
 
@@ -167,10 +177,9 @@ class MyGame extends FlameGame<MyWorld>
   }
 
   void moveCameraUp() {
-    final double targetStackScreenY = size.y - 250;
-    // final targetCameraY = camera.viewfinder.position.y - cameraShift;
+    final double targetStackScreenY = virtualHeight - 250;
     final targetCameraY =
-        lastBox!.position.y - (targetStackScreenY - size.y / 2);
+        lastBox!.position.y - (targetStackScreenY - virtualHeight / 2);
 
     camera.viewfinder.add(
       MoveEffect.to(
