@@ -73,6 +73,35 @@ class GameOver extends StatelessWidget {
                 height: 1.0,
               ),
             ),
+
+            if (game.isNewHighScore) ...[
+              const SizedBox(height: 8.0),
+
+              const Text(
+                'HIGH SCORE!',
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                  color: RetroColors.lcdDarkest,
+                  height: 1.0,
+                ),
+              ),
+
+              const SizedBox(height: 3.0),
+
+              Text(
+                '${game.highScore}',
+                style: const TextStyle(
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                  color: RetroColors.lcdDarkest,
+                  height: 1.0,
+                ),
+              ),
+            ],
+
             const SizedBox(height: 14.0),
 
             // Retro restart button
