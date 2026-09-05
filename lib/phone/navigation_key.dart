@@ -53,38 +53,55 @@ class _NavigationKeyState extends State<NavigationKey> {
             child: Container(
               width: RetroDimensions.navPadSize,
               height: RetroDimensions.navPadSize,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18.0),
                 color: RetroColors.keyShadow,
               ),
             ),
           ),
-          // Directional ring body
+          // Directional squircle body with chrome metallic bevel
           Positioned(
             top: 0.0,
             child: Container(
               width: RetroDimensions.navPadSize,
               height: RetroDimensions.navPadSize,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: RetroColors.navPadSurface,
+                borderRadius: BorderRadius.circular(18.0),
                 border: Border.all(
-                  color: RetroColors.navPadBorder,
-                  width: 1.2,
+                  color: RetroColors.chromeHighlight,
+                  width: 1.8,
                 ),
-                gradient: const RadialGradient(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    RetroColors.navPadSurface,
-                    RetroColors.keySurfaceBottom,
+                    RetroColors.chromeHighlight,
+                    RetroColors.chromeMid,
+                    RetroColors.chromeShadow,
                   ],
                 ),
                 boxShadow: const [
                   BoxShadow(
                     color: RetroColors.keyShadow,
-                    offset: Offset(0.0, 1.5),
-                    blurRadius: 2.0,
+                    offset: Offset(0.0, 2.0),
+                    blurRadius: 3.0,
                   ),
                 ],
+              ),
+              padding: const EdgeInsets.all(2.2),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15.0),
+                  color: RetroColors.navPadSurface,
+                  gradient: const RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.8,
+                    colors: [
+                      RetroColors.buttonHighlight,
+                      RetroColors.navPadSurface,
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -167,9 +184,9 @@ class _NavigationKeyState extends State<NavigationKey> {
           ),
           // CENTER Select / Action Button
           _CenterSelectButton(
-            isPressed: _activeKey == 'SELECT',
-            onTapDown: () => _handleTapDown('SELECT'),
-            onTapUp: () => _handleTapUp('SELECT'),
+            isPressed: _activeKey == 'OK',
+            onTapDown: () => _handleTapDown('OK'),
+            onTapUp: () => _handleTapUp('OK'),
             onTapCancel: _handleTapCancel,
           ),
         ],
@@ -248,8 +265,8 @@ class _CenterSelectButton extends StatelessWidget {
               child: Container(
                 width: RetroDimensions.navCenterButtonSize,
                 height: RetroDimensions.navCenterButtonSize,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(7.0),
                   color: RetroColors.keyShadow,
                 ),
               ),
@@ -263,35 +280,38 @@ class _CenterSelectButton extends StatelessWidget {
                 width: RetroDimensions.navCenterButtonSize,
                 height: RetroDimensions.navCenterButtonSize,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(7.0),
                   border: Border.all(
                     color: isPressed
-                        ? RetroColors.keyBorder
-                        : RetroColors.keyHighlight,
-                    width: 0.8,
+                        ? RetroColors.chromeShadow
+                        : RetroColors.chromeHighlight,
+                    width: 1.0,
                   ),
                   gradient: RadialGradient(
+                    center: const Alignment(-0.2, -0.3),
+                    radius: 0.8,
                     colors: isPressed
                         ? [
                             RetroColors.keyPressedSurface,
                             RetroColors.keyShadow,
                           ]
                         : [
-                            RetroColors.keySurfaceTop,
-                            RetroColors.navCenterSurface,
+                            RetroColors.phoneBodyLight,
+                            RetroColors.phoneBodyMid,
+                            RetroColors.phoneBodyDark,
                           ],
                   ),
                   boxShadow: [
                     BoxShadow(
                       color: RetroColors.keyShadow,
-                      offset: Offset(0.0, isPressed ? 0.5 : 1.5),
-                      blurRadius: isPressed ? 0.5 : 1.5,
+                      offset: Offset(0.0, isPressed ? 0.5 : 1.8),
+                      blurRadius: isPressed ? 0.5 : 2.0,
                     ),
                   ],
                 ),
                 child: const Center(
                   child: Text(
-                    '●',
+                    'OK',
                     style: TextStyle(
                       fontSize: 8.0,
                       color: RetroColors.navArrowColor,
