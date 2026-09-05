@@ -4,6 +4,7 @@ import '../game/my_game.dart';
 import '../overlays/game_over.dart';
 import '../phone/phone_frame.dart';
 import '../theme/colors.dart';
+import '../backgrounds/ambient_background.dart';
 
 /// Top-level application widget for Retro Stack.
 ///
@@ -36,15 +37,17 @@ class _RetroStackAppState extends State<RetroStackApp> {
       ),
       home: Scaffold(
         backgroundColor: RetroColors.deepBlack,
-        body: SafeArea(
-          child: PhoneShell(
-            lcdChild: GameWidget(
-              game: _game,
-              overlayBuilderMap: {
-                'GameOver': (context, game) {
-                  return GameOver(game: game as MyGame);
+        body: AmbientBackground(
+          child: SafeArea(
+            child: PhoneShell(
+              lcdChild: GameWidget(
+                game: _game,
+                overlayBuilderMap: {
+                  'GameOver': (context, game) {
+                    return GameOver(game: game as MyGame);
+                  },
                 },
-              },
+              ),
             ),
           ),
         ),
