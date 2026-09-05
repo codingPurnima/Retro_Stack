@@ -23,7 +23,7 @@ abstract final class RetroDimensions {
   static const double phoneBodyWidth = 292.0;
 
   /// Height of the physical phone body.
-  static const double phoneBodyHeight = 520.0;
+  static const double phoneBodyHeight = 540.0;
 
   /// Outer corner radius of the molded phone body.
   static const double phoneCornerRadius = 28.0;
@@ -36,6 +36,21 @@ abstract final class RetroDimensions {
 
   /// Ambient drop shadow vertical offset.
   static const double phoneShadowOffsetY = 6.0;
+
+  /// Width of the chrome specular rim around the phone body.
+  static const double phoneChromeRimWidth = 2.5;
+
+  /// Corner radius of the dark front faceplate panel.
+  static const double faceplateCornerRadius = 22.0;
+
+  /// Horizontal inset padding for the glossy dark faceplate.
+  static const double faceplateMarginHorizontal = 10.0;
+
+  /// Top margin inset for the dark faceplate.
+  static const double faceplateMarginTop = 8.0;
+
+  /// Exposed bottom slider chin height.
+  static const double sliderChinHeight = 48.0;
 
   // ---------------------------------------------------------------------------
   // Speaker Section (Section 7)
@@ -76,7 +91,7 @@ abstract final class RetroDimensions {
   static const double lcdBezelCornerRadius = 8.0;
 
   /// Inset padding inside the bezel framing the inner LCD glass.
-  static const double lcdBezelPadding = 8.0;
+  static const double lcdBezelPadding = 4.0;
 
   /// Inner corner radius of the LCD glass display.
   static const double lcdInnerCornerRadius = 4.0;
