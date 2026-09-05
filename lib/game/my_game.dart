@@ -4,10 +4,12 @@ import 'package:flame/game.dart';
 import 'package:flame/effects.dart';
 
 import 'package:flutter/material.dart';
+import 'package:retro_stack_frontend/game/components/pedestal_platform.dart';
 
 import 'package:retro_stack_frontend/game/my_world.dart';
 import 'package:retro_stack_frontend/theme/colors.dart';
 import 'components/box.dart';
+import '../backgrounds/game_background.dart';
 import 'components/game_stack.dart';
 
 class MyGame extends FlameGame<MyWorld>
@@ -16,7 +18,7 @@ class MyGame extends FlameGame<MyWorld>
   static const double virtualHeight = 750;
 
   @override
-  Color backgroundColor() => RetroColors.lcdDarkest.withValues(alpha: 0.95);
+  Color backgroundColor() => RetroColors.gameSkyTop;
 
   MyGame()
     : super(
@@ -46,20 +48,29 @@ class MyGame extends FlameGame<MyWorld>
   Future<void> onLoad() async {
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
+    // In-game retro background with sky, distant towers, clouds, crane, and status HUD
+    camera.backdrop.add(GameBackgroundComponent());
+
+    // Retro SCORE display matching inspiration image status bar
     scoreText = TextComponent(
-      text: '0',
+      text: 'SCORE 000',
       textRenderer: TextPaint(
         style: const TextStyle(
-          fontSize: 32,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+          fontSize: 18.5,
+          color: RetroColors.hudText,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          fontFamily: 'monospace',
         ),
       ),
-      anchor: Anchor.topCenter,
-      position: Vector2(virtualWidth / 2, 20),
+      anchor: Anchor.topLeft,
+      position: Vector2(44, 18),
     );
 
     camera.viewport.add(scoreText);
+
+    // Stone masonry pedestal platform where the stack is built
+    world.add(PedestalPlatform(groundY: groundY));
 
     stack = GameStack();
     world.add(stack);
@@ -90,13 +101,14 @@ class MyGame extends FlameGame<MyWorld>
     gameOver = false;
 
     score = 0;
-    scoreText.text = '0';
+    scoreText.text = 'SCORE 000';
 
     camera.stop();
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
     world.removeAll(world.children.toList());
     lastBox = null;
 
+    world.add(PedestalPlatform(groundY: groundY));
     stack = GameStack();
     world.add(stack);
     spawnFirstBox();
@@ -172,7 +184,7 @@ class MyGame extends FlameGame<MyWorld>
     stack.addBox(currentBox);
 
     score++;
-    scoreText.text = '$score';
+    scoreText.text = 'SCORE ${score.toString().padLeft(3, '0')}';
 
     if (shouldMoveCamera()) {
       moveCameraUp();
