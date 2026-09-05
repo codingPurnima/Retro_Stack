@@ -5,6 +5,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:retro_stack_frontend/game/components/pendulum.dart';
+import 'package:retro_stack_frontend/theme/colors.dart';
 
 class Box extends RectangleComponent with CollisionCallbacks {
   final Vector2 gameSize;
@@ -22,6 +23,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
   // FALLING
   final Vector2 velocity = Vector2.zero();
   final double gravity = 900;
+  double angularVelocity = 0.0;
 
   bool hasLanded = false;
   bool isDropping = false;
@@ -114,6 +116,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
     velocity.y += gravity * dt;
 
     position += velocity * dt;
+    angle += angularVelocity * dt;
   }
 
   @override
@@ -164,24 +167,81 @@ class Box extends RectangleComponent with CollisionCallbacks {
 
   @override
   void render(Canvas canvas) {
+    // 1. Draw the crane cable / chain and hook when swinging
     if (isAttached) {
-      final Paint paint = Paint()
-        ..color = Colors.white
-        ..strokeWidth = 3;
-
-      // Box's top-center in local coordinates.
       final Offset boxTopCenter = Offset(size.x / 2, 0);
-
-      // Convert the world-space pivot into the Box's
-      // local coordinate system.
       final Offset localPivot = Offset(
         pivot.x - position.x,
         pivot.y - position.y,
       );
 
-      canvas.drawLine(localPivot, boxTopCenter, paint);
+      // Chain cable
+      final Paint chainPaint = Paint()
+        ..color = RetroColors.craneChain
+        ..strokeWidth = 3.0;
+      canvas.drawLine(localPivot, boxTopCenter, chainPaint);
+
+      // Chain link tick highlights
+      final Paint chainHighlight = Paint()
+        ..color = RetroColors.craneGirderLight
+        ..strokeWidth = 1.2;
+      canvas.drawLine(
+        Offset(localPivot.dx + 0.5, localPivot.dy),
+        Offset(boxTopCenter.dx + 0.5, boxTopCenter.dy),
+        chainHighlight,
+      );
+
+      // Top metallic shackle / hook bracket
+      final Paint shacklePaint = Paint()..color = RetroColors.craneGirderDark;
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: Offset(boxTopCenter.dx, -3.0),
+          width: 8.0,
+          height: 6.0,
+        ),
+        shacklePaint,
+      );
+      final Paint shackleHighlight = Paint()..color = RetroColors.craneGirderLight;
+      canvas.drawRect(
+        Rect.fromCenter(
+          center: Offset(boxTopCenter.dx, -4.5),
+          width: 6.0,
+          height: 2.0,
+        ),
+        shackleHighlight,
+      );
     }
 
-    super.render(canvas);
+    // 2. Draw Stone Block Body (50x50)
+    final double w = size.x;
+    final double h = size.y;
+
+    // Outer dark outline
+    final Paint borderPaint = Paint()..color = RetroColors.stoneBlockBorder;
+    canvas.drawRect(Rect.fromLTWH(0, 0, w, h), borderPaint);
+
+    // Inner main stone face
+    final Paint mainPaint = Paint()..color = RetroColors.stoneBlockMain;
+    canvas.drawRect(Rect.fromLTWH(1.5, 1.5, w - 3.0, h - 3.0), mainPaint);
+
+    // Top & Left highlight bevel
+    final Paint highlightPaint = Paint()..color = RetroColors.stoneBlockHighlight;
+    // Top bevel bar
+    canvas.drawRect(Rect.fromLTWH(1.5, 1.5, w - 3.0, 2.5), highlightPaint);
+    // Left bevel bar
+    canvas.drawRect(Rect.fromLTWH(1.5, 1.5, 2.5, h - 3.0), highlightPaint);
+
+    // Bottom & Right shadow bevel
+    final Paint shadowPaint = Paint()..color = RetroColors.stoneBlockShadow;
+    // Bottom shadow bar
+    canvas.drawRect(Rect.fromLTWH(1.5, h - 4.0, w - 3.0, 2.5), shadowPaint);
+    // Right shadow bar
+    canvas.drawRect(Rect.fromLTWH(w - 4.0, 1.5, 2.5, h - 3.0), shadowPaint);
+
+    // Subtle stone cleft / masonry fissures
+    final Paint detailPaint = Paint()..color = RetroColors.stoneBlockDetail;
+    canvas.drawRect(Rect.fromLTWH(16.0, 14.0, 2.0, 18.0), detailPaint);
+    canvas.drawRect(Rect.fromLTWH(18.0, 22.0, 10.0, 2.0), detailPaint);
+    canvas.drawRect(Rect.fromLTWH(32.0, 28.0, 2.0, 12.0), detailPaint);
   }
 }
