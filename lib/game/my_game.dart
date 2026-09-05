@@ -8,6 +8,7 @@ import 'package:retro_stack_frontend/game/components/pedestal_platform.dart';
 
 import 'package:retro_stack_frontend/game/my_world.dart';
 import 'package:retro_stack_frontend/theme/colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'components/box.dart';
 import '../backgrounds/game_background.dart';
 import 'components/game_stack.dart';
@@ -44,8 +45,16 @@ class MyGame extends FlameGame<MyWorld>
   int score = 0;
   late TextComponent scoreText;
 
+  int highScore = 0;
+  bool isNewHighScore = false;
+
+  static const String _highScoreKey = 'high_score';
+
   @override
   Future<void> onLoad() async {
+    final prefs = await SharedPreferences.getInstance();
+    highScore = prefs.getInt(_highScoreKey) ?? 0;
+
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
     // In-game retro background with sky, distant towers, clouds, crane, and status HUD
@@ -144,10 +153,21 @@ class MyGame extends FlameGame<MyWorld>
     }
   }
 
-  void endGame() {
+  void endGame() async {
     gameOver = true;
     currentBox.velocity.setZero();
     currentBox.isDropping = false;
+    overlays.add('GameOver');
+
+    if (score > highScore) {
+      highScore = score;
+      isNewHighScore = true;
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_highScoreKey, highScore);
+    } else {
+      isNewHighScore = false;
+    }
     overlays.add('GameOver');
   }
 
