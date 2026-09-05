@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:retro_stack_frontend/backgrounds/pixel_background_elements.dart';
@@ -8,11 +9,19 @@ import '../game/my_game.dart';
 /// clouds, crane girder mechanism, and retro status prompts.
 class GameBackgroundComponent extends PositionComponent
     with HasGameReference<MyGame> {
+  double _pulseTimer = 0.0;
+
   GameBackgroundComponent()
     : super(
         size: Vector2(MyGame.virtualWidth, MyGame.virtualHeight),
         position: Vector2.zero(),
       );
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _pulseTimer += dt;
+  }
 
   @override
   void render(Canvas canvas) {
@@ -41,8 +50,10 @@ class GameBackgroundComponent extends PositionComponent
     // 5. Top Status Bar (Signal bars, Battery)
     _drawStatusBarDecorations(canvas, w);
 
-    // 6. Bottom Prompt Banner ('— PRESS OK TO DROP —')
-    _drawBottomPrompt(canvas, w, h);
+    // 6. Bottom Prompt Banner (Visible only until first actual drop in active session)
+    if (game.playState == GamePlayState.playing && !game.hasPerformedFirstDrop) {
+      _drawBottomPrompt(canvas, w, h);
+    }
   }
 
   void _drawFarTowers(Canvas canvas, double w, double h) {
@@ -164,52 +175,132 @@ class GameBackgroundComponent extends PositionComponent
   }
 
   void _drawBottomPrompt(Canvas canvas, double w, double h) {
-    // Bottom banner prompt: '—  PRESS 5 TO DROP  —'
-    const bannerW = 280.0;
-    const bannerH = 26.0;
+    // High-contrast instructional hint panel: [ OK ] PRESS TO DROP
+    const bannerW = 250.0;
+    const bannerH = 32.0;
     final bannerX = (w - bannerW) / 2;
-    final bannerY = h - 52.0;
+    final bannerY = h - 58.0;
 
-    final bgPaint = Paint()..color = RetroColors.hudPromptBg;
+    final double pulse = 0.5 + 0.5 * sin(_pulseTimer * 3.5);
+
+    // Drop shadow
+    final shadowPaint = Paint()..color = const Color(0x99000000);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(bannerX, bannerY + 2.0, bannerW, bannerH),
+        const Radius.circular(4.0),
+      ),
+      shadowPaint,
+    );
+
+    // High-contrast deep ink background
+    final bgPaint = Paint()..color = const Color(0xF210151C);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(bannerX, bannerY, bannerW, bannerH),
-        const Radius.circular(3.0),
+        const Radius.circular(4.0),
       ),
       bgPaint,
     );
 
+    // Subtle pulsing retro border
+    final borderColor = Color.lerp(
+      const Color(0xFF6C8C9E),
+      const Color(0xFFFFFFFF),
+      pulse * 0.8,
+    )!;
     final borderPaint = Paint()
-      ..color = RetroColors.hudPromptText.withValues(alpha: 0.4)
+      ..color = borderColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 1.6;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(bannerX, bannerY, bannerW, bannerH),
-        const Radius.circular(3.0),
+        const Radius.circular(4.0),
       ),
       borderPaint,
     );
 
-    // Draw text with TextPainter
+    // Mini representation of physical center OK button
+    const miniBtnW = 34.0;
+    const miniBtnH = 20.0;
+    final miniBtnX = bannerX + 10.0;
+    final miniBtnY = bannerY + (bannerH - miniBtnH) / 2;
+
+    final miniBtnPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFEAF2F8),
+          Color(0xFFADC2D1),
+          Color(0xFF6B879B),
+        ],
+      ).createShader(Rect.fromLTWH(miniBtnX, miniBtnY, miniBtnW, miniBtnH));
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(miniBtnX, miniBtnY, miniBtnW, miniBtnH),
+        const Radius.circular(4.0),
+      ),
+      miniBtnPaint,
+    );
+
+    final miniBtnBorder = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(miniBtnX, miniBtnY, miniBtnW, miniBtnH),
+        const Radius.circular(4.0),
+      ),
+      miniBtnBorder,
+    );
+
+    // Mini OK button label
+    final okTextPainter = TextPainter(
+      text: const TextSpan(
+        text: 'OK',
+        style: TextStyle(
+          color: Color(0xFF16181A),
+          fontSize: 9.5,
+          fontWeight: FontWeight.w900,
+          fontFamily: 'monospace',
+          height: 1.0,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    okTextPainter.paint(
+      canvas,
+      Offset(
+        miniBtnX + (miniBtnW - okTextPainter.width) / 2,
+        miniBtnY + (miniBtnH - okTextPainter.height) / 2,
+      ),
+    );
+
+    // Instructional hint text
     final textPainter = TextPainter(
       text: const TextSpan(
-        text: '—   PRESS OK TO DROP   —',
+        text: 'PRESS TO DROP',
         style: TextStyle(
-          color: RetroColors.hudPromptText,
-          fontSize: 11.0,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2.0,
+          color: Color(0xFFEAF2F8),
+          fontSize: 12.0,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.8,
           fontFamily: 'monospace',
+          height: 1.0,
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
 
+    final remainingW = bannerW - (miniBtnW + 16.0);
     textPainter.paint(
       canvas,
       Offset(
-        bannerX + (bannerW - textPainter.width) / 2,
+        bannerX + miniBtnW + 16.0 + (remainingW - textPainter.width) / 2 - 4.0,
         bannerY + (bannerH - textPainter.height) / 2,
       ),
     );
