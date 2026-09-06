@@ -43,7 +43,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     overlays.addEntry('GameOver', (context, game) => const SizedBox.shrink());
   }
 
-  late Box currentBox;
+  Box? currentBox;
   Box? lastBox;
   final double groundY = 730;
 
@@ -116,34 +116,46 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
     // Stone masonry pedestal platform where the stack is built
     world.add(PedestalPlatform(groundY: groundY));
+  }
 
-    stack = GameStack();
-    world.add(stack);
-
-    spawnFirstBox();
+  /// Safely removes all active Box, Pendulum, GameStack, and temporary gameplay components from world,
+  /// and immediately processes pending removals so world is completely clean synchronously.
+  void clearGameplayComponents() {
+    processLifecycleEvents();
+    final toRemove = world.children.where((c) => c is! PedestalPlatform).toList();
+    for (final component in toRemove) {
+      component.removeFromParent();
+    }
+    processLifecycleEvents();
+    if (world.children.whereType<PedestalPlatform>().isEmpty) {
+      world.add(PedestalPlatform(groundY: groundY));
+      processLifecycleEvents();
+    }
   }
 
   void spawnFirstBox() {
-    currentBox = Box(
+    final box = Box(
       gameSize: Vector2(virtualWidth, virtualHeight),
       onLanded: boxLanded,
       targetBox: null,
       position: Vector2(virtualWidth / 2 - 25, spawnScreenY),
       pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
-    world.add(currentBox);
+    currentBox = box;
+    world.add(box);
   }
 
   /// Drops the swinging box. Physical OK button during gameplay is the primary and only trigger.
   void dropBox() {
     if (gameOver || paused) return;
     if (playState != GamePlayState.playing) return;
-    if (!currentBox.hasLanded && !currentBox.isDropping) {
+    final box = currentBox;
+    if (box != null && !box.hasLanded && !box.isDropping) {
       if (!hasPerformedFirstDrop) {
         hasPerformedFirstDrop = true;
         showDropHintNotifier.value = false;
       }
-      currentBox.drop();
+      box.drop();
     }
   }
 
@@ -201,15 +213,37 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     }
   }
 
-  /// Starts or restarts gameplay from the Title / Start Screen.
+  /// Starts or restarts gameplay from the Title / Start Screen or Game Over.
   void startGame() {
     overlays.remove('StartScreen');
     overlays.remove('Pause');
     overlays.remove('Menu');
     overlays.remove('GameOver');
+
+    // 1. Remove all previous run gameplay components
+    clearGameplayComponents();
+
+    // 2. Reset gameplay state
+    gameOver = false;
     hasPerformedFirstDrop = false;
     showDropHintNotifier.value = true;
-    restartGame();
+    score = 0;
+    scoreText.text = 'SCORE 000';
+    lastBox = null;
+
+    // 3. Reset camera and cancel any camera effects
+    camera.stop();
+    camera.viewfinder.removeAll(camera.viewfinder.children.whereType<Effect>().toList());
+    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
+
+    // 4. Exactly one owner creates the initial gameplay objects
+    stack = GameStack();
+    world.add(stack);
+    spawnFirstBox();
+
+    // 5. Synchronously process lifecycle events so tree is ready
+    processLifecycleEvents();
+
     if (paused) {
       resumeEngine();
     }
@@ -223,21 +257,22 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     if (!overlays.isActive('StartScreen')) {
       overlays.add('StartScreen');
     }
+
+    pauseEngine();
+
+    camera.stop();
+    camera.viewfinder.removeAll(camera.viewfinder.children.whereType<Effect>().toList());
+    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
+
+    clearGameplayComponents();
+
+    currentBox = null;
+    lastBox = null;
     hasPerformedFirstDrop = false;
     showDropHintNotifier.value = false;
     gameOver = false;
     score = 0;
     scoreText.text = 'SCORE 000';
-    camera.stop();
-    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
-    world.removeAll(world.children.toList());
-    lastBox = null;
-
-    world.add(PedestalPlatform(groundY: groundY));
-    stack = GameStack();
-    world.add(stack);
-    spawnFirstBox();
-    pauseEngine();
   }
 
   /// Centralized physical button handler dispatched from PhoneShell.
@@ -304,35 +339,12 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   }
 
   void restartGame() {
-    overlays.remove("GameOver");
-    overlays.remove("Pause");
-    overlays.remove("Menu");
-    overlays.remove("StartScreen");
-    gameOver = false;
-    hasPerformedFirstDrop = false;
-    showDropHintNotifier.value = true;
-
-    score = 0;
-    scoreText.text = 'SCORE 000';
-
-    camera.stop();
-    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
-    world.removeAll(world.children.toList());
-    lastBox = null;
-
-    world.add(PedestalPlatform(groundY: groundY));
-    stack = GameStack();
-    world.add(stack);
-    spawnFirstBox();
-
-    if (paused) {
-      resumeEngine();
-    }
+    startGame();
   }
 
   @override
   void update(double dt) {
-    if (gameOver) {
+    if (gameOver || playState != GamePlayState.playing) {
       return;
     }
 
@@ -341,7 +353,8 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
     super.update(clampedDt);
 
-    if (currentBox.isDropping && lastBox == null) {
+    final box = currentBox;
+    if (box != null && box.isDropping && lastBox == null) {
       checkGroundCollision();
     }
 
@@ -363,8 +376,11 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   void endGame() async {
     gameOver = true;
     showDropHintNotifier.value = false;
-    currentBox.velocity.setZero();
-    currentBox.isDropping = false;
+    final box = currentBox;
+    if (box != null) {
+      box.velocity.setZero();
+      box.isDropping = false;
+    }
     overlays.add('GameOver');
 
     if (score > highScore) {
@@ -379,12 +395,14 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   }
 
   void checkGroundCollision() {
-    if (currentBox.position.y + currentBox.size.y >= groundY) {
-      currentBox.position.y = groundY - currentBox.size.y;
+    final box = currentBox;
+    if (box == null) return;
+    if (box.position.y + box.size.y >= groundY) {
+      box.position.y = groundY - box.size.y;
 
-      currentBox.velocity.y = 0;
-      currentBox.hasLanded = true;
-      currentBox.isDropping = false;
+      box.velocity.y = 0;
+      box.hasLanded = true;
+      box.isDropping = false;
 
       boxLanded();
     }
@@ -394,21 +412,23 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     final Rect visibleWorld = camera.visibleWorldRect;
     final double spawnWorldY = visibleWorld.top + spawnScreenY;
 
-    currentBox = Box(
+    final box = Box(
       gameSize: Vector2(virtualWidth, virtualHeight),
       onLanded: boxLanded,
       targetBox: lastBox,
       position: Vector2(virtualWidth / 2 - 25, spawnWorldY),
       pendulumSpeedMultiplier: pendulumSpeedMultiplier,
     );
-
-    world.add(currentBox);
+    currentBox = box;
+    world.add(box);
   }
 
   void boxLanded() {
-    lastBox = currentBox;
+    final box = currentBox;
+    if (box == null) return;
+    lastBox = box;
 
-    stack.addBox(currentBox);
+    stack.addBox(box);
 
     score++;
     scoreText.text = 'SCORE ${score.toString().padLeft(3, '0')}';
@@ -446,7 +466,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   double get pendulumSpeedMultiplier {
     return 1.0 +
-        (score ~/ 7) *
+        (score ~/ 4) *
             0.15; // every 7 successful boxes, pendulum gets 15% faster
   }
 }
