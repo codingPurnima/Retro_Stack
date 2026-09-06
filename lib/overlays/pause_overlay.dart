@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:retro_stack_frontend/phone/icons/retro_play_pause_icon.dart';
 import '../game/my_game.dart';
 import '../theme/colors.dart';
 
@@ -9,10 +10,7 @@ import '../theme/colors.dart';
 class PauseOverlay extends StatefulWidget {
   final MyGame game;
 
-  const PauseOverlay({
-    super.key,
-    required this.game,
-  });
+  const PauseOverlay({super.key, required this.game});
 
   @override
   State<PauseOverlay> createState() => _PauseOverlayState();
@@ -32,10 +30,7 @@ class _PauseOverlayState extends State<PauseOverlay> {
         decoration: BoxDecoration(
           color: RetroColors.lcdLight,
           borderRadius: BorderRadius.circular(4.0),
-          border: Border.all(
-            color: RetroColors.lcdDarkest,
-            width: 2.0,
-          ),
+          border: Border.all(color: RetroColors.lcdDarkest, width: 2.0),
           boxShadow: [
             BoxShadow(
               color: RetroColors.lcdDarkest.withValues(alpha: 0.35),
@@ -63,15 +58,20 @@ class _PauseOverlayState extends State<PauseOverlay> {
             const SizedBox(height: 6.0),
 
             // Pixel Divider
-            Container(
-              height: 1.5,
-              width: 100.0,
-              color: RetroColors.lcdDark,
-            ),
+            Container(height: 1.5, width: 100.0, color: RetroColors.lcdDark),
             const SizedBox(height: 8.0),
 
-            const Text(
-              'Press ⏯️ to Resume',
+            const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: 'Press '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: RetroPlayPauseIcon(size: 10, color: RetroColors.lcdDark,),
+                  ),
+                  TextSpan(text: '  to Resume'),
+                ],
+              ),
               style: TextStyle(
                 fontSize: 9.5,
                 fontWeight: FontWeight.bold,
@@ -95,9 +95,14 @@ class _PauseOverlayState extends State<PauseOverlay> {
               child: Transform.translate(
                 offset: Offset(0.0, _isPressed ? 1.5 : 0.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 6.0,
+                  ),
                   decoration: BoxDecoration(
-                    color: _isPressed ? RetroColors.lcdDark : RetroColors.lcdDarkest,
+                    color: _isPressed
+                        ? RetroColors.lcdDark
+                        : RetroColors.lcdDarkest,
                     borderRadius: BorderRadius.circular(3.0),
                     border: Border.all(
                       color: RetroColors.lcdDarkest,
@@ -107,7 +112,9 @@ class _PauseOverlayState extends State<PauseOverlay> {
                         ? []
                         : [
                             BoxShadow(
-                              color: RetroColors.lcdDarkest.withValues(alpha: 0.4),
+                              color: RetroColors.lcdDarkest.withValues(
+                                alpha: 0.4,
+                              ),
                               offset: const Offset(0.0, 1.5),
                               blurRadius: 0.0,
                             ),
