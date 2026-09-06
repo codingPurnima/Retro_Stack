@@ -19,6 +19,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
   bool isAttached = true;
 
   final double pendulumSpeedMultiplier;
+  final double horizontalVelocityTransfer = 0.45;
 
   // FALLING
   final Vector2 velocity = Vector2.zero();
@@ -41,7 +42,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
     double damping = 0.08,
     double initialAngle = 0.35,
     double initialAngularVelocity = 0,
-    double energyRecovery= 0.90,
+    double energyRecovery = 0.90,
   }) : pendulum = Pendulum(
          stringLength: stringLength,
          gravity: pendulumGravity,
@@ -96,7 +97,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
     // Get the actual linear velocity produced by the physical pendulum at the moment of release.
     final Vector2 releaseVelocity = pendulum.linearVelocity;
 
-    velocity.setFrom(releaseVelocity);
+    velocity.setValues(releaseVelocity.x * horizontalVelocityTransfer, releaseVelocity.y);
 
     // Add a little downward velocity.
     //
@@ -201,7 +202,8 @@ class Box extends RectangleComponent with CollisionCallbacks {
         ),
         shacklePaint,
       );
-      final Paint shackleHighlight = Paint()..color = RetroColors.craneGirderLight;
+      final Paint shackleHighlight = Paint()
+        ..color = RetroColors.craneGirderLight;
       canvas.drawRect(
         Rect.fromCenter(
           center: Offset(boxTopCenter.dx, -4.5),
@@ -225,7 +227,8 @@ class Box extends RectangleComponent with CollisionCallbacks {
     canvas.drawRect(Rect.fromLTWH(1.5, 1.5, w - 3.0, h - 3.0), mainPaint);
 
     // Top & Left highlight bevel
-    final Paint highlightPaint = Paint()..color = RetroColors.stoneBlockHighlight;
+    final Paint highlightPaint = Paint()
+      ..color = RetroColors.stoneBlockHighlight;
     // Top bevel bar
     canvas.drawRect(Rect.fromLTWH(1.5, 1.5, w - 3.0, 2.5), highlightPaint);
     // Left bevel bar
