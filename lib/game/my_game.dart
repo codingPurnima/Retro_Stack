@@ -77,9 +77,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   /// Current high-level game state determined by active overlays and engine status.
   GamePlayState get playState {
+    if (overlays.isActive('Menu')) return GamePlayState.menu;
     if (overlays.isActive('StartScreen')) return GamePlayState.startScreen;
     if (overlays.isActive('GameOver')) return GamePlayState.gameOver;
-    if (overlays.isActive('Menu')) return GamePlayState.menu;
     if (overlays.isActive('Pause') || paused) return GamePlayState.paused;
     return GamePlayState.playing;
   }
@@ -328,12 +328,15 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
       case 'UP':
       case 'DOWN':
-      case 'LEFT':
-      case 'RIGHT':
         if (currentState == GamePlayState.menu) {
           keyEventNotifier.value = null;
           keyEventNotifier.value = key;
         }
+        return;
+
+      case 'LEFT':
+      case 'RIGHT':
+        // Unassigned directional keys remain inactive
         return;
     }
   }
