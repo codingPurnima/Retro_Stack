@@ -244,20 +244,20 @@ class _GameMenuState extends State<GameMenu> {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 6.0),
         decoration: BoxDecoration(
-          color: isSelected ? RetroColors.lcdDarkest : RetroColors.lcdDark,
+          color: isSelected ? RetroColors.lcdDarkest : const Color(0x00000000),
           borderRadius: BorderRadius.circular(3.0),
           border: Border.all(
             color: RetroColors.lcdDarkest,
             width: 1.5,
           ),
         ),
-        child: const Text(
+        child: Text(
           'BACK',
           style: TextStyle(
             fontSize: 11.5,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.0,
-            color: RetroColors.lcdLight,
+            color: isSelected ? RetroColors.lcdLight : RetroColors.lcdDarkest,
             fontFamily: 'monospace',
             height: 1.0,
           ),
