@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import 'package:flame/effects.dart';
 
 import 'package:flutter/material.dart';
+import 'package:retro_stack_frontend/audio/game_audio.dart';
 import 'package:retro_stack_frontend/game/components/pedestal_platform.dart';
 
 import 'package:retro_stack_frontend/game/my_world.dart';
@@ -12,13 +13,7 @@ import 'components/box.dart';
 import '../backgrounds/game_background.dart';
 import 'components/game_stack.dart';
 
-enum GamePlayState {
-  startScreen,
-  playing,
-  paused,
-  menu,
-  gameOver,
-}
+enum GamePlayState { startScreen, playing, paused, menu, gameOver }
 
 class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   static const double virtualWidth = 480;
@@ -37,7 +32,10 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
       ) {
     // Register default overlay entry points so overlays can be safely managed
     // in standalone game tests as well as when hosted in GameWidget.
-    overlays.addEntry('StartScreen', (context, game) => const SizedBox.shrink());
+    overlays.addEntry(
+      'StartScreen',
+      (context, game) => const SizedBox.shrink(),
+    );
     overlays.addEntry('Menu', (context, game) => const SizedBox.shrink());
     overlays.addEntry('Pause', (context, game) => const SizedBox.shrink());
     overlays.addEntry('GameOver', (context, game) => const SizedBox.shrink());
@@ -86,10 +84,13 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   @override
   Future<void> onLoad() async {
+    await GameAudio.initialize();
+
     final prefs = await SharedPreferences.getInstance();
     highScore = prefs.getInt(_highScoreKey) ?? 0;
     soundEnabled = prefs.getBool(_soundEnabledKey) ?? true;
     soundEnabledNotifier.value = soundEnabled;
+    GameAudio.soundEnabled = soundEnabled;
 
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
@@ -122,7 +123,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   /// and immediately processes pending removals so world is completely clean synchronously.
   void clearGameplayComponents() {
     processLifecycleEvents();
-    final toRemove = world.children.where((c) => c is! PedestalPlatform).toList();
+    final toRemove = world.children
+        .where((c) => c is! PedestalPlatform)
+        .toList();
     for (final component in toRemove) {
       component.removeFromParent();
     }
@@ -145,12 +148,23 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     world.add(box);
   }
 
+  /// Whether the current swinging box is eligible to be dropped.
+  bool get canDropBox {
+    final box = currentBox;
+    return box != null &&
+        box.isAttached &&
+        !box.isDropping &&
+        !box.hasLanded &&
+        !gameOver &&
+        !paused &&
+        playState == GamePlayState.playing;
+  }
+
   /// Drops the swinging box. Physical OK button during gameplay is the primary and only trigger.
   void dropBox() {
-    if (gameOver || paused) return;
-    if (playState != GamePlayState.playing) return;
+    if (!canDropBox) return;
     final box = currentBox;
-    if (box != null && !box.hasLanded && !box.isDropping) {
+    if (box != null) {
       if (!hasPerformedFirstDrop) {
         hasPerformedFirstDrop = true;
         showDropHintNotifier.value = false;
@@ -163,6 +177,10 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   Future<void> toggleSound() async {
     soundEnabled = !soundEnabled;
     soundEnabledNotifier.value = soundEnabled;
+    GameAudio.soundEnabled = soundEnabled;
+    if (!soundEnabled) {
+      GameAudio.stopBgm();
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_soundEnabledKey, soundEnabled);
   }
@@ -187,7 +205,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   /// Toggles pause/resume on the Flame game engine.
   void togglePause() {
-    if (gameOver || overlays.isActive('StartScreen') || overlays.isActive('Menu')) {
+    if (gameOver ||
+        overlays.isActive('StartScreen') ||
+        overlays.isActive('Menu')) {
       return;
     }
     if (paused) {
@@ -233,7 +253,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
     // 3. Reset camera and cancel any camera effects
     camera.stop();
-    camera.viewfinder.removeAll(camera.viewfinder.children.whereType<Effect>().toList());
+    camera.viewfinder.removeAll(
+      camera.viewfinder.children.whereType<Effect>().toList(),
+    );
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
     // 4. Exactly one owner creates the initial gameplay objects
@@ -261,7 +283,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     pauseEngine();
 
     camera.stop();
-    camera.viewfinder.removeAll(camera.viewfinder.children.whereType<Effect>().toList());
+    camera.viewfinder.removeAll(
+      camera.viewfinder.children.whereType<Effect>().toList(),
+    );
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
 
     clearGameplayComponents();
@@ -302,6 +326,9 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
             return;
 
           case GamePlayState.playing:
+            if (canDropBox) {
+              GameAudio.playBoxRelease();
+            }
             dropBox();
             return;
         }
@@ -317,7 +344,8 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
       case 'PAUSE/RESUME':
         if (currentState == GamePlayState.menu) {
           toggleMenu();
-        } else if (currentState == GamePlayState.playing || currentState == GamePlayState.paused) {
+        } else if (currentState == GamePlayState.playing ||
+            currentState == GamePlayState.paused) {
           togglePause();
         }
         return;
@@ -377,6 +405,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   }
 
   void endGame() async {
+    if (gameOver) return;
     gameOver = true;
     showDropHintNotifier.value = false;
     final box = currentBox;
@@ -384,11 +413,16 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
       box.velocity.setZero();
       box.isDropping = false;
     }
+
+    GameAudio.playGameOver();
+
     overlays.add('GameOver');
 
     if (score > highScore) {
       highScore = score;
       isNewHighScore = true;
+
+      GameAudio.playHighScore();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_highScoreKey, highScore);
@@ -428,13 +462,16 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   void boxLanded() {
     final box = currentBox;
-    if (box == null) return;
+    if (box == null || box.hasPlayedLandSound) return;
+    box.hasPlayedLandSound = true;
     lastBox = box;
 
     stack.addBox(box);
 
     score++;
     scoreText.text = 'SCORE ${score.toString().padLeft(3, '0')}';
+
+    GameAudio.playBoxLand();
 
     if (shouldMoveCamera()) {
       moveCameraUp();

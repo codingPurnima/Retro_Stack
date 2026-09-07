@@ -29,6 +29,8 @@ class Box extends RectangleComponent with CollisionCallbacks {
   bool hasLanded = false;
   bool isDropping = false;
   bool isInStack = false;
+  bool hasPlayedReleaseSound = false;
+  bool hasPlayedLandSound = false;
 
   Box({
     required this.gameSize,
@@ -90,14 +92,17 @@ class Box extends RectangleComponent with CollisionCallbacks {
   }
 
   void drop() {
-    if (!isAttached || hasLanded) {
+    if (!isAttached || hasLanded || isDropping) {
       return;
     }
 
     // Get the actual linear velocity produced by the physical pendulum at the moment of release.
     final Vector2 releaseVelocity = pendulum.linearVelocity;
 
-    velocity.setValues(releaseVelocity.x * horizontalVelocityTransfer, releaseVelocity.y);
+    velocity.setValues(
+      releaseVelocity.x * horizontalVelocityTransfer,
+      releaseVelocity.y,
+    );
 
     // Add a little downward velocity.
     //
