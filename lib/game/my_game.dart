@@ -180,6 +180,10 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     GameAudio.soundEnabled = soundEnabled;
     if (!soundEnabled) {
       GameAudio.stopBgm();
+    } else {
+      if (playState == GamePlayState.playing) {
+        GameAudio.playCheerfulBgm();
+      }
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_soundEnabledKey, soundEnabled);
@@ -269,6 +273,10 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     if (paused) {
       resumeEngine();
     }
+
+    if (soundEnabled) {
+      GameAudio.playCheerfulBgm(forceRestart: true);
+    }
   }
 
   /// Exits back to the Game Home / Start Screen when physical END / Power key is pressed.
@@ -281,6 +289,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     }
 
     pauseEngine();
+    GameAudio.stopBgm();
 
     camera.stop();
     camera.viewfinder.removeAll(
@@ -414,6 +423,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
       box.isDropping = false;
     }
 
+    GameAudio.stopBgm();
     GameAudio.playGameOver();
 
     overlays.add('GameOver');
@@ -508,5 +518,11 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     return 1.0 +
         (score ~/ 4) *
             0.15; // every 7 successful boxes, pendulum gets 15% faster
+  }
+
+  @override
+  void onRemove() {
+    GameAudio.stopBgm();
+    super.onRemove();
   }
 }
