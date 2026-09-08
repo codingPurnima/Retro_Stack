@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import '../audio/game_audio.dart';
 import '../game/my_game.dart';
 import '../overlays/game_menu.dart';
 import '../overlays/game_over.dart';
@@ -49,6 +50,12 @@ class _RetroStackAppState extends State<RetroStackApp> {
     // synchronously re-adds initialActiveOverlays if GameWidget is ever rebuilt.
     _game.overlays.add('StartScreen');
     _game.pauseEngine();
+  }
+
+  @override
+  void dispose() {
+    GameAudio.stopBgm();
+    super.dispose();
   }
 
   @override
