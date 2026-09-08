@@ -274,6 +274,8 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
       resumeEngine();
     }
 
+    GameAudio.resetSfxPools();
+
     if (soundEnabled) {
       GameAudio.playCheerfulBgm(forceRestart: true);
     }

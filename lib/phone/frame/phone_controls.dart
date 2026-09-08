@@ -3,6 +3,7 @@ import 'package:retro_stack_frontend/phone/icons/retro_play_pause_icon.dart';
 import 'package:retro_stack_frontend/phone/icons/retro_power_icon.dart';
 import 'package:retro_stack_frontend/phone/icons/retro_sound_icon.dart';
 import 'package:retro_stack_frontend/phone/frame/physical_button.dart';
+import 'package:retro_stack_frontend/theme/dimensions.dart';
 import '../icons/retro_menu_icon.dart';
 import '../navigation_key.dart';
 
@@ -14,9 +15,12 @@ class PhoneControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-      child: Row(
+    return Transform.scale(
+      scale: RetroDimensions.controlsScale,
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -68,6 +72,7 @@ class PhoneControls extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

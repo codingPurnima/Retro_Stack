@@ -19,6 +19,8 @@ import 'package:retro_stack_frontend/phone/speaker.dart';
 import 'package:retro_stack_frontend/game/components/box.dart';
 import 'package:retro_stack_frontend/audio/game_audio.dart';
 import 'package:retro_stack_frontend/theme/colors.dart';
+import 'package:retro_stack_frontend/theme/dimensions.dart';
+import 'package:retro_stack_frontend/phone/frame/phone_controls.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -1107,6 +1109,115 @@ void main() {
       // StartScreen dismissed and BGM starts immediately on the very first start
       expect(find.byType(StartScreen), findsNothing);
       expect(GameAudio.isBgmPlaying, isTrue);
+    },
+  );
+
+  testWidgets(
+    'SFX: Play events continue working reliably across multiple Game Over -> Restart cycles',
+    (WidgetTester tester) async {
+      GameAudio.resetMetrics();
+      GameAudio.soundEnabled = true;
+
+      final game = MyGame();
+      await game.onLoad();
+
+      // Cycle 1: Start Game -> Drop -> Land -> Game Over
+      game.startGame();
+      expect(game.currentBox, isNotNull);
+      game.handlePhysicalKey('OK'); // Drop
+      expect(GameAudio.lastPlayedSound, GameAudio.boxRelease);
+
+      GameAudio.playBoxLand();
+      expect(GameAudio.lastPlayedSound, GameAudio.boxLand);
+
+      game.endGame();
+      expect(GameAudio.lastPlayedSound, GameAudio.gameOver);
+      expect(game.gameOver, isTrue);
+
+      // Cycle 2: Restart Game -> Drop -> Land -> Game Over
+      game.restartGame();
+      expect(game.gameOver, isFalse);
+      expect(game.currentBox, isNotNull);
+
+      game.handlePhysicalKey('OK'); // Drop in Game 2
+      expect(GameAudio.lastPlayedSound, GameAudio.boxRelease);
+
+      GameAudio.playBoxLand();
+      expect(GameAudio.lastPlayedSound, GameAudio.boxLand);
+
+      game.endGame();
+      expect(GameAudio.lastPlayedSound, GameAudio.gameOver);
+
+      // Cycle 3: Restart Game again -> Drop -> Land
+      game.restartGame();
+      expect(game.gameOver, isFalse);
+      expect(game.currentBox, isNotNull);
+
+      game.handlePhysicalKey('OK'); // Drop in Game 3
+      expect(GameAudio.lastPlayedSound, GameAudio.boxRelease);
+
+      GameAudio.playBoxLand();
+      expect(GameAudio.lastPlayedSound, GameAudio.boxLand);
+
+      // Verify all sounds across all 3 cycles played without disruption
+      final releaseEvents = GameAudio.playHistory.where((s) => s == GameAudio.boxRelease).length;
+      final landEvents = GameAudio.playHistory.where((s) => s == GameAudio.boxLand).length;
+      final gameOverEvents = GameAudio.playHistory.where((s) => s == GameAudio.gameOver).length;
+
+      expect(releaseEvents, 3);
+      expect(landEvents, 3);
+      expect(gameOverEvents, 2);
+    },
+  );
+
+  testWidgets(
+    'PhoneControls: Scales uniformly with RetroDimensions.controlsScale and dispatches input callbacks',
+    (WidgetTester tester) async {
+      final pressedKeys = <String>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: PhoneControls(
+            onKeyPressed: (key) => pressedKeys.add(key),
+            highlightOk: false,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // 1. Verify PhoneControls is rendered
+      expect(find.byType(PhoneControls), findsOneWidget);
+
+      // 2. Verify Transform.scale is configured with RetroDimensions.controlsScale
+      final transformFinder = find.descendant(
+        of: find.byType(PhoneControls),
+        matching: find.byType(Transform),
+      );
+      expect(transformFinder, findsWidgets);
+      final transformWidget = tester.widget<Transform>(transformFinder.first);
+      expect(transformWidget.transform.getMaxScaleOnAxis(), closeTo(RetroDimensions.controlsScale, 0.001));
+
+      // 3. Verify physical keys inside scaled PhoneControls respond to taps
+      await tester.tap(find.byKey(const Key('MENU')));
+      await tester.pump();
+      expect(pressedKeys, contains('MENU'));
+
+      await tester.tap(find.byKey(const Key('SOUND')));
+      await tester.pump();
+      expect(pressedKeys, contains('SOUND'));
+
+      await tester.tap(find.byKey(const Key('PAUSE/RESUME')));
+      await tester.pump();
+      expect(pressedKeys, contains('PAUSE/RESUME'));
+
+      await tester.tap(find.byKey(const Key('END')));
+      await tester.pump();
+      expect(pressedKeys, contains('END'));
+
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+      expect(pressedKeys, contains('OK'));
     },
   );
 }

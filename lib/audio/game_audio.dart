@@ -57,10 +57,26 @@ class GameAudio {
         ]);
 
         // 2. Pre-create and pre-source dedicated native players for zero-latency playback
-        _releasePool = await _SfxPlayerPool.create(file: boxRelease, poolSize: 2);
-        _landPool = await _SfxPlayerPool.create(file: boxLand, poolSize: 2);
-        _gameOverPool = await _SfxPlayerPool.create(file: gameOver, poolSize: 1);
-        _highScorePool = await _SfxPlayerPool.create(file: highScore, poolSize: 1);
+        _releasePool = await _SfxPlayerPool.create(
+          file: boxRelease,
+          poolSize: 3,
+          defaultVolume: boxReleaseVolume,
+        );
+        _landPool = await _SfxPlayerPool.create(
+          file: boxLand,
+          poolSize: 3,
+          defaultVolume: boxLandVolume,
+        );
+        _gameOverPool = await _SfxPlayerPool.create(
+          file: gameOver,
+          poolSize: 1,
+          defaultVolume: gameOverVolume,
+        );
+        _highScorePool = await _SfxPlayerPool.create(
+          file: highScore,
+          poolSize: 1,
+          defaultVolume: highScoreVolume,
+        );
 
         // 3. Initialize background music manager and pre-warm native BGM source
         try {
@@ -75,6 +91,17 @@ class GameAudio {
     } catch (e) {
       debugPrint('GameAudio initialize notice: $e');
     }
+  }
+
+  /// Resets all SFX player pools to a clean, stopped state on game restart.
+  static Future<void> resetSfxPools() async {
+    if (_isTest) return;
+    await Future.wait([
+      if (_releasePool != null) _releasePool!.reset(),
+      if (_landPool != null) _landPool!.reset(),
+      if (_gameOverPool != null) _gameOverPool!.reset(),
+      if (_highScorePool != null) _highScorePool!.reset(),
+    ]);
   }
 
   // Centralized volume levels (SFX scaled ~1.4x from base levels for clear balance over BGM)
@@ -220,13 +247,18 @@ class GameAudio {
 /// Pre-allocated, pre-sourced AudioPlayer pool that eliminates native allocation and decode latency.
 class _SfxPlayerPool {
   final List<AudioPlayer> _players;
+  final List<bool> _hasPlayed;
+  final double _defaultVolume;
   int _nextIndex = 0;
 
-  _SfxPlayerPool(this._players);
+  _SfxPlayerPool(this._players, {double defaultVolume = 1.0})
+      : _hasPlayed = List<bool>.filled(_players.length, false),
+        _defaultVolume = defaultVolume;
 
   static Future<_SfxPlayerPool> create({
     required String file,
     required int poolSize,
+    double defaultVolume = 1.0,
   }) async {
     final players = <AudioPlayer>[];
     for (int i = 0; i < poolSize; i++) {
@@ -236,23 +268,48 @@ class _SfxPlayerPool {
         AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers).build(),
       );
       await player.setReleaseMode(ReleaseMode.stop);
+      await player.setVolume(defaultVolume);
       await player.setSource(AssetSource(file));
       players.add(player);
     }
-    return _SfxPlayerPool(players);
+    return _SfxPlayerPool(players, defaultVolume: defaultVolume);
   }
 
-  void play({required double volume}) {
+  Future<void> play({double? volume}) async {
     if (_players.isEmpty) return;
-    final player = _players[_nextIndex];
+    final index = _nextIndex;
+    final player = _players[index];
+    final hasPlayed = _hasPlayed[index];
+    _hasPlayed[index] = true;
     _nextIndex = (_nextIndex + 1) % _players.length;
+
     try {
-      player.setVolume(volume);
-      player.seek(Duration.zero);
-      player.resume();
+      // Android SoundPoolPlayer has no playback completion callback, leaving
+      // WrappedPlayer.playing = true forever after the first play.
+      // Calling stop() cleanly resets playing = false and clears the stream ID,
+      // enabling resume() to play the preloaded sound buffer every single time.
+      // We avoid seek() because SoundPool on Android does not support seeking and traps player state.
+      if (hasPlayed) {
+        await player.stop();
+      }
+      if (volume != null && volume != _defaultVolume) {
+        await player.setVolume(volume);
+      }
+      await player.resume();
     } catch (e) {
       debugPrint('Error playing preloaded SFX: $e');
     }
+  }
+
+  /// Cleanly stops all players in the pool and resets play state for a fresh game session.
+  Future<void> reset() async {
+    for (final p in _players) {
+      try {
+        await p.stop();
+      } catch (_) {}
+    }
+    _hasPlayed.fillRange(0, _hasPlayed.length, false);
+    _nextIndex = 0;
   }
 
   Future<void> dispose() async {
@@ -262,6 +319,7 @@ class _SfxPlayerPool {
       } catch (_) {}
     }
     _players.clear();
+    _hasPlayed.clear();
   }
 }
 

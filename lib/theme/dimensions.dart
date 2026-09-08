@@ -143,6 +143,11 @@ abstract final class RetroDimensions {
   /// Size of directional arrows in navigation control.
   static const double navArrowSize = 10.0;
 
+  /// Scale factor for the physical phone controls / keypad region (Section 18).
+  /// Conservatively scales the D-pad and flanking buttons for physical device usability
+  /// while preserving aspect ratio, key shapes, centering, and alignment.
+  static const double controlsScale = 1.15;
+
   // ---------------------------------------------------------------------------
   // Numeric Keypad & Keys (Sections 19, 20, 21)
   // ---------------------------------------------------------------------------

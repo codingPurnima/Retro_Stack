@@ -2,16 +2,11 @@
 // of `lib/phone/phone_frame.dart` continue to work.
 export 'phone_shell.dart';
 import 'package:flutter/widgets.dart';
-import 'package:retro_stack_frontend/phone/icons/retro_play_pause_icon.dart';
-import 'package:retro_stack_frontend/phone/icons/retro_power_icon.dart';
-import 'package:retro_stack_frontend/phone/icons/retro_sound_icon.dart';
-import 'package:retro_stack_frontend/phone/frame/physical_button.dart';
 import '../../theme/colors.dart';
 import '../../theme/dimensions.dart';
-import '../navigation_key.dart';
 import '../lcd_screen.dart';
 import '../speaker.dart';
-import '../icons/retro_menu_icon.dart';
+import 'phone_controls.dart';
 
 /// The outer feature phone shell widget (Sections 2, 4, 5, 31).
 ///
@@ -162,66 +157,9 @@ class PhoneShell extends StatelessWidget {
                           const SizedBox(height: 8.0),
 
                           // Control Section: Flanking button columns + Center D-pad
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Left Flanking Buttons: Menu (top) + Sound (bottom)
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    PhysicalButton(
-                                      key: const Key('MENU'),
-                                      label: 'MENU',
-                                      icon: const RetroMenuIcon(),
-                                      onTap: () => onKeyPressed?.call('MENU'),
-                                    ),
-                                    const SizedBox(height: 6.0),
-                                    PhysicalButton(
-                                      key: const Key('SOUND'),
-                                      label: 'SOUND',
-                                      icon: const RetroSoundIcon(),
-                                      onTap: () => onKeyPressed?.call('SOUND'),
-                                    ),
-                                  ],
-                                ),
-
-                                const SizedBox(width: 10.0),
-
-                                // Central D-pad
-                                NavigationKey(
-                                  onKeyPressed: onKeyPressed,
-                                  highlightOk: highlightOk,
-                                ),
-
-                                const SizedBox(width: 10.0),
-
-                                // Right Flanking Buttons: Pause/Resume (top) + End/Power (bottom)
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    PhysicalButton(
-                                      key: const Key('PAUSE/RESUME'),
-                                      label: 'PAUSE/RESUME',
-                                      icon: const RetroPlayPauseIcon(),
-                                      onTap: () =>
-                                          onKeyPressed?.call('PAUSE/RESUME'),
-                                    ),
-                                    const SizedBox(height: 6.0),
-                                    PhysicalButton(
-                                      key: const Key('END'),
-                                      label: 'END',
-                                      icon: const RetroPowerIcon(),
-                                      onTap: () => onKeyPressed?.call('END'),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                          PhoneControls(
+                            onKeyPressed: onKeyPressed,
+                            highlightOk: highlightOk,
                           ),
                         ],
                       ),
