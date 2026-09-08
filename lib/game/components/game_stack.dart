@@ -68,7 +68,7 @@ class GameStack extends Component {
   final List<TopplingGroup> _topplingGroups = [];
 
   GameStack({
-    this.gravity = 135,
+    this.gravity = 153,
     this.angularDamping = 5.0,
     this.balanceTolerance = 0.30,
     this.minimumOverlapRatio = 0.60,

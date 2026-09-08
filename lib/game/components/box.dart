@@ -19,7 +19,7 @@ class Box extends RectangleComponent with CollisionCallbacks {
   bool isAttached = true;
 
   final double pendulumSpeedMultiplier;
-  final double horizontalVelocityTransfer = 0.45;
+  final double horizontalVelocityTransfer = 0.55;
 
   // FALLING
   final Vector2 velocity = Vector2.zero();
