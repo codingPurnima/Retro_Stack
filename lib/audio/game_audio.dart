@@ -8,6 +8,7 @@ class GameAudio {
   static const String boxLand = 'box_land.wav';
   static const String gameOver = 'game_over.wav';
   static const String highScore = 'high_score.wav';
+  static const String cheerfulBgm = 'cheerful_bgm.wav';
 
   /// Global sound toggle state. When false, all SFX and BGM are muted.
   static bool soundEnabled = true;
@@ -52,6 +53,7 @@ class GameAudio {
           boxLand,
           gameOver,
           highScore,
+          cheerfulBgm,
         ]);
 
         // 2. Pre-create and pre-source dedicated native players for zero-latency playback
@@ -59,6 +61,15 @@ class GameAudio {
         _landPool = await _SfxPlayerPool.create(file: boxLand, poolSize: 2);
         _gameOverPool = await _SfxPlayerPool.create(file: gameOver, poolSize: 1);
         _highScorePool = await _SfxPlayerPool.create(file: highScore, poolSize: 1);
+
+        // 3. Initialize background music manager and pre-warm native BGM source
+        try {
+          await FlameAudio.bgm.initialize();
+          await FlameAudio.bgm.audioPlayer.setReleaseMode(ReleaseMode.loop);
+          await FlameAudio.bgm.audioPlayer.setSource(AssetSource(cheerfulBgm));
+        } catch (e) {
+          debugPrint('GameAudio bgm initialize notice: $e');
+        }
       }
       _isInitialized = true;
     } catch (e) {
@@ -66,14 +77,21 @@ class GameAudio {
     }
   }
 
+  // Centralized volume levels (SFX scaled ~1.4x from base levels for clear balance over BGM)
+  static const double boxReleaseVolume = 0.63; // was 0.45 (0.45 * 1.4 = 0.63)
+  static const double boxLandVolume = 0.70;    // was 0.50 (0.50 * 1.4 = 0.70)
+  static const double gameOverVolume = 0.77;   // was 0.55 (0.55 * 1.4 = 0.77)
+  static const double highScoreVolume = 0.77;  // was 0.55 (0.55 * 1.4 = 0.77)
+  static const double bgmVolume = 0.25;        // continuous background music volume
+
   /// Plays short "tik" release sound when box is dropped from pendulum.
   static void playBoxRelease() {
     _playEvent(boxRelease);
     if (!soundEnabled || _isTest) return;
     if (_releasePool != null) {
-      _releasePool!.play(volume: 0.45);
+      _releasePool!.play(volume: boxReleaseVolume);
     } else {
-      _fallbackPlay(boxRelease, volume: 0.45);
+      _fallbackPlay(boxRelease, volume: boxReleaseVolume);
     }
   }
 
@@ -82,9 +100,9 @@ class GameAudio {
     _playEvent(boxLand);
     if (!soundEnabled || _isTest) return;
     if (_landPool != null) {
-      _landPool!.play(volume: 0.50);
+      _landPool!.play(volume: boxLandVolume);
     } else {
-      _fallbackPlay(boxLand, volume: 0.50);
+      _fallbackPlay(boxLand, volume: boxLandVolume);
     }
   }
 
@@ -93,9 +111,9 @@ class GameAudio {
     _playEvent(gameOver);
     if (!soundEnabled || _isTest) return;
     if (_gameOverPool != null) {
-      _gameOverPool!.play(volume: 0.55);
+      _gameOverPool!.play(volume: gameOverVolume);
     } else {
-      _fallbackPlay(gameOver, volume: 0.55);
+      _fallbackPlay(gameOver, volume: gameOverVolume);
     }
   }
 
@@ -104,9 +122,9 @@ class GameAudio {
     _playEvent(highScore);
     if (!soundEnabled || _isTest) return;
     if (_highScorePool != null) {
-      _highScorePool!.play(volume: 0.55);
+      _highScorePool!.play(volume: highScoreVolume);
     } else {
-      _fallbackPlay(highScore, volume: 0.55);
+      _fallbackPlay(highScore, volume: highScoreVolume);
     }
   }
 
@@ -125,35 +143,53 @@ class GameAudio {
     }
   }
 
-  // --- Background Music (Prepared for upcoming Suno-generated BGM) ---
+  // --- Background Music ---
 
   static bool _bgmPlaying = false;
+  static bool get isBgmPlaying => _bgmPlaying;
+
+  /// Plays the game's cheerful background music track in a continuous loop.
+  static void playCheerfulBgm({double volume = bgmVolume, bool forceRestart = false}) {
+    playBgm(cheerfulBgm, volume: volume, forceRestart: forceRestart);
+  }
 
   /// Starts looping background music track.
-  static void playBgm(String trackName, {double volume = 0.4}) {
+  static void playBgm(
+    String trackName, {
+    double volume = bgmVolume,
+    bool forceRestart = false,
+  }) {
     if (!soundEnabled) return;
-    if (_isTest) {
-      _bgmPlaying = true;
-      return;
-    }
+    if (_bgmPlaying && !forceRestart) return;
+    _bgmPlaying = true;
+    if (_isTest) return;
+    _startBgm(trackName, volume: volume);
+  }
+
+  static Future<void> _startBgm(String trackName, {double volume = bgmVolume}) async {
     try {
-      FlameAudio.bgm.play(trackName, volume: volume);
-      _bgmPlaying = true;
+      await FlameAudio.bgm.stop();
+      await FlameAudio.bgm.audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await FlameAudio.bgm.audioPlayer.setVolume(volume);
+      await FlameAudio.bgm.audioPlayer.setSource(AssetSource(trackName));
+      await FlameAudio.bgm.audioPlayer.seek(Duration.zero);
+      await FlameAudio.bgm.resume();
     } catch (e) {
-      debugPrint('GameAudio playBgm notice: $e');
+      debugPrint('GameAudio _startBgm notice: $e');
+      try {
+        await FlameAudio.bgm.play(trackName, volume: volume);
+      } catch (e2) {
+        debugPrint('GameAudio fallback play notice: $e2');
+      }
     }
   }
 
   /// Stops current background music.
   static void stopBgm() {
-    if (!_bgmPlaying) return;
-    if (_isTest) {
-      _bgmPlaying = false;
-      return;
-    }
+    _bgmPlaying = false;
+    if (_isTest) return;
     try {
       FlameAudio.bgm.stop();
-      _bgmPlaying = false;
     } catch (e) {
       debugPrint('GameAudio stopBgm notice: $e');
     }
@@ -161,6 +197,14 @@ class GameAudio {
 
   /// Disposes all pre-loaded players and clears resources.
   static Future<void> dispose() async {
+    stopBgm();
+    if (!_isTest) {
+      try {
+        await FlameAudio.bgm.dispose();
+      } catch (e) {
+        debugPrint('GameAudio bgm dispose notice: $e');
+      }
+    }
     await _releasePool?.dispose();
     await _landPool?.dispose();
     await _gameOverPool?.dispose();
@@ -221,4 +265,4 @@ class _SfxPlayerPool {
   }
 }
 
-
+
