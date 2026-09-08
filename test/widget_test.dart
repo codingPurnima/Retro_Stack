@@ -16,11 +16,16 @@ import 'package:retro_stack_frontend/phone/icons/retro_sound_icon.dart';
 import 'package:retro_stack_frontend/phone/icons/retro_play_pause_icon.dart';
 import 'package:retro_stack_frontend/phone/icons/retro_power_icon.dart';
 import 'package:retro_stack_frontend/phone/speaker.dart';
+import 'package:retro_stack_frontend/game/components/box.dart';
+import 'package:retro_stack_frontend/audio/game_audio.dart';
+import 'package:retro_stack_frontend/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    GameAudio.soundEnabled = true;
+    GameAudio.resetMetrics();
   });
   testWidgets(
     'RetroStackApp renders phone shell with embedded Flame game and ambient backdrop',
@@ -234,8 +239,7 @@ void main() {
       game.overlays.add('StartScreen');
 
       expect(game.playState, GamePlayState.startScreen);
-      expect(game.currentBox.isAttached, isTrue);
-      expect(game.currentBox.isDropping, isFalse);
+      expect(game.currentBox, isNull);
 
       // Press physical OK to start game
       game.handlePhysicalKey('OK');
@@ -245,8 +249,9 @@ void main() {
       expect(game.playState, GamePlayState.playing);
 
       // CRITICAL REQUIREMENT: First box MUST remain swinging, NOT dropped!
-      expect(game.currentBox.isAttached, isTrue);
-      expect(game.currentBox.isDropping, isFalse);
+      expect(game.currentBox, isNotNull);
+      expect(game.currentBox!.isAttached, isTrue);
+      expect(game.currentBox!.isDropping, isFalse);
       expect(game.hasPerformedFirstDrop, isFalse);
       expect(game.showDropHintNotifier.value, isTrue);
     },
@@ -271,14 +276,17 @@ void main() {
       );
       await tester.pump();
 
+      expect(game.currentBox, isNull);
+
       // Tap on-screen button
       await tester.tap(find.text('PRESS OK TO PLAY'));
       await tester.pump();
 
       expect(game.overlays.isActive('StartScreen'), isFalse);
       expect(game.playState, GamePlayState.playing);
-      expect(game.currentBox.isAttached, isTrue);
-      expect(game.currentBox.isDropping, isFalse);
+      expect(game.currentBox, isNotNull);
+      expect(game.currentBox!.isAttached, isTrue);
+      expect(game.currentBox!.isDropping, isFalse);
     },
   );
 
@@ -290,14 +298,14 @@ void main() {
     game.startGame();
 
     expect(game.playState, GamePlayState.playing);
-    expect(game.currentBox.isAttached, isTrue);
-    expect(game.currentBox.isDropping, isFalse);
+    expect(game.currentBox!.isAttached, isTrue);
+    expect(game.currentBox!.isDropping, isFalse);
 
     // Physical OK during gameplay triggers drop
     game.handlePhysicalKey('OK');
 
-    expect(game.currentBox.isAttached, isFalse);
-    expect(game.currentBox.isDropping, isTrue);
+    expect(game.currentBox!.isAttached, isFalse);
+    expect(game.currentBox!.isDropping, isTrue);
   });
 
   testWidgets(
@@ -324,8 +332,8 @@ void main() {
       await tester.pump();
 
       // Box must remain swinging attached
-      expect(game.currentBox.isAttached, isTrue);
-      expect(game.currentBox.isDropping, isFalse);
+      expect(game.currentBox!.isAttached, isTrue);
+      expect(game.currentBox!.isDropping, isFalse);
     },
   );
 
@@ -357,16 +365,16 @@ void main() {
     // Pause the game
     game.handlePhysicalKey('PAUSE/RESUME');
     expect(game.playState, GamePlayState.paused);
-    expect(game.currentBox.isAttached, isTrue);
-    expect(game.currentBox.isDropping, isFalse);
+    expect(game.currentBox!.isAttached, isTrue);
+    expect(game.currentBox!.isDropping, isFalse);
 
     // Press OK while paused (resumes game)
     game.handlePhysicalKey('OK');
     expect(game.playState, GamePlayState.playing);
 
     // Box MUST NOT have dropped
-    expect(game.currentBox.isAttached, isTrue);
-    expect(game.currentBox.isDropping, isFalse);
+    expect(game.currentBox!.isAttached, isTrue);
+    expect(game.currentBox!.isDropping, isFalse);
   });
 
   testWidgets(
@@ -456,6 +464,649 @@ void main() {
 
       // StartScreen reappears cleanly upon END key
       expect(find.byType(StartScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'FLOW B: Power key returns to StartScreen with ZERO active boxes and restart spawns exactly ONE box',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+
+      // 1. Start fresh game (FLOW A)
+      game.startGame();
+      expect(game.playState, GamePlayState.playing);
+      expect(game.world.children.whereType<Box>().length, 1);
+      expect(game.currentBox, isNotNull);
+      expect(game.currentBox!.isAttached, isTrue);
+
+      // 2. Drop the first box so it is in world and next box is spawned
+      game.dropBox();
+      expect(game.currentBox!.isDropping, isTrue);
+
+      // 3. Press physical POWER ('END') during playing
+      game.handlePhysicalKey('END');
+      expect(game.playState, GamePlayState.startScreen);
+      expect(game.paused, isTrue);
+
+      // CRITICAL: Ensure there are ZERO active Box or GameStack components from previous run
+      expect(game.world.children.whereType<Box>(), isEmpty);
+      expect(game.currentBox, isNull);
+      expect(game.lastBox, isNull);
+
+      // 4. Press physical OK to start game again (FLOW B)
+      game.handlePhysicalKey('OK');
+      expect(game.playState, GamePlayState.playing);
+      expect(game.paused, isFalse);
+
+      // CRITICAL: Exactly ONE swinging box and ONE GameStack must exist
+      expect(game.world.children.whereType<Box>().length, 1);
+      expect(game.currentBox, isNotNull);
+      expect(game.currentBox!.isAttached, isTrue);
+      expect(game.currentBox!.isDropping, isFalse);
+    },
+  );
+
+  testWidgets(
+    'Multiple POWER -> START -> PLAY cycles produce no duplicate boxes or pendulums',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+
+      for (int i = 0; i < 4; i++) {
+        // Start game
+        game.startGame();
+        expect(game.world.children.whereType<Box>().length, 1,
+            reason: 'Cycle $i: expected exactly 1 box on start');
+        expect(game.currentBox!.isAttached, isTrue);
+
+        // Press POWER
+        game.handlePhysicalKey('END');
+        expect(game.playState, GamePlayState.startScreen);
+        expect(game.world.children.whereType<Box>(), isEmpty,
+            reason: 'Cycle $i: expected 0 boxes on start screen');
+        expect(game.currentBox, isNull);
+      }
+    },
+  );
+
+  testWidgets(
+    'Normal GAME OVER -> RESTART preserves single active box and stack',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+
+      game.startGame();
+      expect(game.world.children.whereType<Box>().length, 1);
+
+      // Trigger Game Over
+      game.endGame();
+      expect(game.gameOver, isTrue);
+
+      // Restart
+      game.restartGame();
+      expect(game.gameOver, isFalse);
+      expect(game.playState, GamePlayState.playing);
+      expect(game.world.children.whereType<Box>().length, 1);
+      expect(game.currentBox!.isAttached, isTrue);
+    },
+  );
+
+  // =========================================================================
+  // SECTION 5: RETRO MENU D-PAD NAVIGATION & SELECTION TESTS
+  // =========================================================================
+
+  testWidgets(
+    'Menu navigation: UP and DOWN keys cycle through options with wrap-around',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.overlays.add('Menu');
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 214.0,
+            height: 334.0,
+            child: GameMenu(game: game),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Initially index 0 ('Sound') is selected (lcdLight text, lcdDarkest background)
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdLight);
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdDarkest);
+
+      // DOWN -> Option 1: Difficulty
+      game.handlePhysicalKey('DOWN');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdLight);
+
+      // DOWN -> Option 2: High Score
+      game.handlePhysicalKey('DOWN');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdLight);
+
+      // DOWN -> Option 3: BACK
+      game.handlePhysicalKey('DOWN');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdLight);
+
+      // DOWN -> Wrap around to Option 0: Sound
+      game.handlePhysicalKey('DOWN');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdLight);
+
+      // UP -> Wrap around backwards to Option 3: BACK
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdLight);
+
+      // UP -> Option 2: High Score
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdLight);
+
+      // UP -> Option 1: Difficulty
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdLight);
+
+      // UP -> Option 0: Sound
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdLight);
+    },
+  );
+
+  testWidgets(
+    'Menu navigation: Tapping an option selects it immediately and D-pad continues from there',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.overlays.add('Menu');
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 214.0,
+            height: 334.0,
+            child: GameMenu(game: game),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tap Option 1: Difficulty
+      await tester.tap(find.text('Difficulty'));
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdLight);
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdDarkest);
+
+      // Subsequent DOWN key must move to Option 2: High Score
+      game.handlePhysicalKey('DOWN');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdDarkest);
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdLight);
+
+      // Tap Option 1 again
+      await tester.tap(find.text('Difficulty'));
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdLight);
+
+      // Subsequent UP key must move to Option 0: Sound
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdLight);
+    },
+  );
+
+  testWidgets(
+    'Menu activation: OK key toggles sound when Sound selected and closes menu when BACK selected',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.overlays.add('Menu');
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: 214.0,
+            height: 334.0,
+            child: GameMenu(game: game),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(game.soundEnabled, isTrue);
+      expect(find.text('ON'), findsOneWidget);
+
+      // OK with index 0 (Sound) selected toggles sound OFF
+      game.handlePhysicalKey('OK');
+      await tester.pump();
+      expect(game.soundEnabled, isFalse);
+      expect(find.text('OFF'), findsOneWidget);
+
+      // OK again toggles sound ON
+      game.handlePhysicalKey('OK');
+      await tester.pump();
+      expect(game.soundEnabled, isTrue);
+      expect(find.text('ON'), findsOneWidget);
+
+      // Navigate UP to Option 3: BACK
+      game.handlePhysicalKey('UP');
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdLight);
+
+      // OK with BACK selected closes menu
+      game.handlePhysicalKey('OK');
+      await tester.pump();
+      expect(game.overlays.isActive('Menu'), isFalse);
+    },
+  );
+
+  testWidgets(
+    'Menu input isolation: Directional keys behave correctly when menu is closed vs open',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.startGame();
+
+      expect(game.playState, GamePlayState.playing);
+      expect(game.keyEventNotifier.value, isNull);
+
+      // When menu is closed, UP and DOWN do not dispatch to keyEventNotifier
+      game.handlePhysicalKey('UP');
+      expect(game.keyEventNotifier.value, isNull);
+
+      game.handlePhysicalKey('DOWN');
+      expect(game.keyEventNotifier.value, isNull);
+
+      game.handlePhysicalKey('LEFT');
+      expect(game.keyEventNotifier.value, isNull);
+
+      game.handlePhysicalKey('RIGHT');
+      expect(game.keyEventNotifier.value, isNull);
+
+      // Now open Menu
+      game.toggleMenu();
+      expect(game.playState, GamePlayState.menu);
+
+      // LEFT and RIGHT remain unassigned and ignored even in menu
+      game.handlePhysicalKey('LEFT');
+      expect(game.keyEventNotifier.value, isNull);
+
+      game.handlePhysicalKey('RIGHT');
+      expect(game.keyEventNotifier.value, isNull);
+
+      // UP and DOWN dispatch to menu
+      game.handlePhysicalKey('DOWN');
+      expect(game.keyEventNotifier.value, 'DOWN');
+
+      game.handlePhysicalKey('UP');
+      expect(game.keyEventNotifier.value, 'UP');
+    },
+  );
+
+  testWidgets(
+    'End-to-End: Physical D-pad navigates menu in RetroStackApp',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(const RetroStackApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Open menu via physical MENU button
+      await tester.tap(find.byKey(const Key('MENU')));
+      await tester.pump();
+
+      expect(find.text('OPTIONS'), findsOneWidget);
+      expect(tester.widget<Text>(find.text('Sound')).style?.color, RetroColors.lcdLight);
+
+      // Press D-pad DOWN ('▼')
+      await tester.tap(find.text('▼'));
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('Difficulty')).style?.color, RetroColors.lcdLight);
+
+      // Press D-pad DOWN again ('▼') -> High Score
+      await tester.tap(find.text('▼'));
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('High Score')).style?.color, RetroColors.lcdLight);
+
+      // Press D-pad DOWN again ('▼') -> BACK
+      await tester.tap(find.text('▼'));
+      await tester.pump();
+      expect(tester.widget<Text>(find.text('BACK')).style?.color, RetroColors.lcdLight);
+
+      // Press D-pad OK -> Closes menu
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+      expect(find.text('OPTIONS'), findsNothing);
+    },
+  );
+
+  // =========================================================================
+  // SECTION 6: SFX INTEGRATION & AUDIO ARCHITECTURE TESTS
+  // =========================================================================
+
+  testWidgets(
+    'SFX: box_release.wav plays exactly once when swinging box is released',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.startGame();
+
+      GameAudio.resetMetrics();
+      expect(game.currentBox, isNotNull);
+
+      // Drop the swinging box via physical OK
+      game.handlePhysicalKey('OK');
+
+      expect(GameAudio.lastPlayedSound, GameAudio.boxRelease);
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.boxRelease).length,
+        1,
+      );
+
+      // Attempting to call drop again on already dropping box must not replay sound
+      game.currentBox!.drop();
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.boxRelease).length,
+        1,
+      );
+
+      // Attempting to press OK again while box is already dropping must NOT replay sound
+      game.handlePhysicalKey('OK');
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.boxRelease).length,
+        1,
+      );
+    },
+  );
+
+  testWidgets(
+    'SFX: OK key does NOT trigger box_release.wav on StartScreen, Menu, Pause, or GameOver',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.overlays.add('StartScreen');
+      game.pauseEngine();
+
+      GameAudio.resetMetrics();
+
+      // 1. StartScreen: OK starts game, must NOT play box_release.wav
+      expect(game.playState, GamePlayState.startScreen);
+      game.handlePhysicalKey('OK');
+      expect(game.playState, GamePlayState.playing);
+      expect(GameAudio.playHistory, isNot(contains(GameAudio.boxRelease)));
+
+      // 2. Pause: OK resumes game, must NOT play box_release.wav
+      game.handlePhysicalKey('PAUSE/RESUME');
+      expect(game.playState, GamePlayState.paused);
+      game.handlePhysicalKey('OK');
+      expect(game.playState, GamePlayState.playing);
+      expect(GameAudio.playHistory, isNot(contains(GameAudio.boxRelease)));
+
+      // 3. Menu: OK interacts with menu, must NOT play box_release.wav
+      game.handlePhysicalKey('MENU');
+      expect(game.playState, GamePlayState.menu);
+      game.handlePhysicalKey('OK');
+      expect(GameAudio.playHistory, isNot(contains(GameAudio.boxRelease)));
+      game.handlePhysicalKey('MENU'); // Close menu
+
+      // 4. GameOver: OK restarts game, must NOT play box_release.wav
+      game.endGame();
+      expect(game.playState, GamePlayState.gameOver);
+      GameAudio.resetMetrics(); // clear game over sound
+      game.handlePhysicalKey('OK');
+      expect(game.playState, GamePlayState.playing);
+      expect(GameAudio.playHistory, isNot(contains(GameAudio.boxRelease)));
+    },
+  );
+
+  testWidgets(
+    'SFX: box_land.wav plays exactly once when box lands and is guarded against duplicate triggers',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.startGame();
+
+      GameAudio.resetMetrics();
+      final box = game.currentBox!;
+
+      // Simulate landing
+      box.isDropping = false;
+      box.hasLanded = true;
+      game.boxLanded();
+
+      expect(GameAudio.lastPlayedSound, GameAudio.boxLand);
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.boxLand).length,
+        1,
+      );
+
+      // Subsequent duplicate callback for the same box must NOT play landing sound again
+      game.boxLanded();
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.boxLand).length,
+        1,
+      );
+    },
+  );
+
+  testWidgets(
+    'SFX: game_over.wav plays on Game Over and cannot trigger multiple times',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.highScore = 10;
+      game.score = 3; // Not a new high score
+      game.startGame();
+
+      GameAudio.resetMetrics();
+
+      // Trigger Game Over
+      game.endGame();
+
+      expect(game.gameOver, isTrue);
+      expect(game.isNewHighScore, isFalse);
+      expect(GameAudio.playHistory, contains(GameAudio.gameOver));
+      expect(GameAudio.playHistory, isNot(contains(GameAudio.highScore)));
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.gameOver).length,
+        1,
+      );
+
+      // Second endGame call must be guarded by if (gameOver) return;
+      game.endGame();
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.gameOver).length,
+        1,
+      );
+    },
+  );
+
+  testWidgets(
+    'SFX: high_score.wav plays only when score actually achieves a new high score',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.highScore = 2;
+      game.score = 5; // Beat high score!
+      game.startGame();
+      game.score = 5; // Ensure score after startGame reset
+
+      GameAudio.resetMetrics();
+
+      game.endGame();
+
+      expect(game.gameOver, isTrue);
+      expect(game.isNewHighScore, isTrue);
+      expect(GameAudio.playHistory, contains(GameAudio.highScore));
+      expect(GameAudio.playHistory, contains(GameAudio.gameOver));
+      expect(
+        GameAudio.playHistory.where((s) => s == GameAudio.highScore).length,
+        1,
+      );
+    },
+  );
+
+  testWidgets(
+    'SFX: None of the SFX play when soundEnabled is OFF',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.startGame();
+
+      // Toggle sound OFF
+      await game.toggleSound();
+      expect(game.soundEnabled, isFalse);
+      expect(GameAudio.soundEnabled, isFalse);
+
+      GameAudio.resetMetrics();
+
+      // Try triggering all 4 sound events
+      GameAudio.playBoxRelease();
+      GameAudio.playBoxLand();
+      GameAudio.playGameOver();
+      GameAudio.playHighScore();
+
+      expect(GameAudio.playCount, 0);
+      expect(GameAudio.playHistory, isEmpty);
+      expect(GameAudio.lastPlayedSound, isNull);
+    },
+  );
+
+  testWidgets(
+    'SFX: Restarting the game does not accidentally trigger any SFX',
+    (WidgetTester tester) async {
+      final game = MyGame();
+      await game.onLoad();
+      game.startGame();
+
+      GameAudio.resetMetrics();
+
+      // Restart game
+      game.restartGame();
+      expect(GameAudio.playCount, 0);
+
+      // Power key to start screen
+      game.handlePhysicalKey('END');
+      expect(GameAudio.playCount, 0);
+
+      // Start game from start screen
+      game.handlePhysicalKey('OK');
+      expect(GameAudio.playCount, 0);
+      expect(GameAudio.playHistory, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'BGM: starts on game start, stops on Game Over, restarts on new game, respects toggle',
+    (WidgetTester tester) async {
+      GameAudio.stopBgm();
+      GameAudio.soundEnabled = true;
+
+      final game = MyGame();
+      await game.onLoad();
+
+      // 1. Must NOT play on StartScreen / initial load
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // 2. Starts when game session begins
+      game.startGame();
+      expect(game.playState, GamePlayState.playing);
+      expect(GameAudio.isBgmPlaying, isTrue);
+
+      // 3. Toggling sound OFF while playing stops BGM
+      await game.toggleSound();
+      expect(game.soundEnabled, isFalse);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // 4. Toggling sound back ON while playing resumes BGM
+      await game.toggleSound();
+      expect(game.soundEnabled, isTrue);
+      expect(GameAudio.isBgmPlaying, isTrue);
+
+      // 5. Game Over immediately stops BGM
+      game.endGame();
+      expect(game.gameOver, isTrue);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // 6. Toggling sound ON while in Game Over must NOT play BGM
+      await game.toggleSound(); // OFF
+      await game.toggleSound(); // ON
+      expect(game.soundEnabled, isTrue);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // 7. Restarting game starts BGM again
+      game.restartGame();
+      expect(game.playState, GamePlayState.playing);
+      expect(GameAudio.isBgmPlaying, isTrue);
+
+      // 8. Returning to StartScreen stops BGM
+      game.resetToStartScreen();
+      expect(game.playState, GamePlayState.startScreen);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // 9. Removing/disposing component ensures BGM is stopped
+      game.onRemove();
+      expect(GameAudio.isBgmPlaying, isFalse);
+    },
+  );
+
+  testWidgets(
+    'BGM: Does not play when game session starts with sound preference disabled',
+    (WidgetTester tester) async {
+      GameAudio.stopBgm();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('sound_enabled', false);
+
+      final game = MyGame();
+      await game.onLoad();
+
+      // Start game while sound is disabled
+      game.startGame();
+      expect(game.soundEnabled, isFalse);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // Restore setting for other tests
+      await prefs.setBool('sound_enabled', true);
+      GameAudio.soundEnabled = true;
+    },
+  );
+
+  testWidgets(
+    'BGM: starts immediately on the VERY FIRST launch when starting game from StartScreen',
+    (WidgetTester tester) async {
+      GameAudio.stopBgm();
+      GameAudio.soundEnabled = true;
+
+      await tester.pumpWidget(const RetroStackApp());
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Initially on StartScreen: BGM must NOT play
+      expect(find.byType(StartScreen), findsOneWidget);
+      expect(GameAudio.isBgmPlaying, isFalse);
+
+      // Tap physical OK to start the very first game
+      await tester.tap(find.text('OK'));
+      await tester.pump();
+
+      // StartScreen dismissed and BGM starts immediately on the very first start
+      expect(find.byType(StartScreen), findsNothing);
+      expect(GameAudio.isBgmPlaying, isTrue);
     },
   );
 }
