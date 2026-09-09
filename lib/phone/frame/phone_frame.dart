@@ -32,17 +32,54 @@ class PhoneShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.contain,
-        alignment: Alignment.center,
-        child: SizedBox(
-          width: RetroDimensions.designWidth,
-          height: RetroDimensions.designHeight,
-          child: Center(
-            child: Container(
-              width: RetroDimensions.phoneBodyWidth,
-              height: RetroDimensions.phoneBodyHeight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
+        final bool isBounded =
+            availableWidth.isFinite && availableHeight.isFinite;
+
+        final double targetWidth;
+        final double targetHeight;
+
+        if (isBounded) {
+          // Scale the complete phone frame to occupy most of the available vertical height
+          // while maintaining reasonable top/bottom spacing.
+          final maxTargetHeight =
+              availableHeight * RetroDimensions.phoneScaleFactor;
+          final maxTargetWidth =
+              availableWidth * RetroDimensions.phoneScaleFactor;
+
+          double h = maxTargetHeight;
+          double w = h * RetroDimensions.aspectRatio;
+
+          // Proportional width clamp: ensure the phone preserves aspect ratio without horizontal overflow
+          if (w > maxTargetWidth) {
+            w = maxTargetWidth;
+            h = w / RetroDimensions.aspectRatio;
+          }
+
+          targetWidth = w;
+          targetHeight = h;
+        } else {
+          targetWidth = RetroDimensions.designWidth;
+          targetHeight = RetroDimensions.designHeight;
+        }
+
+        return Center(
+          child: SizedBox(
+            width: targetWidth,
+            height: targetHeight,
+            child: FittedBox(
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: RetroDimensions.designWidth,
+                height: RetroDimensions.designHeight,
+                child: Center(
+                  child: Container(
+                    width: RetroDimensions.phoneBodyWidth,
+                    height: RetroDimensions.phoneBodyHeight,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(
                   RetroDimensions.phoneCornerRadius,
@@ -200,6 +237,9 @@ class PhoneShell extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
+},
+);
   }
 }
