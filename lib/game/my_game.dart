@@ -85,19 +85,30 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
   @override
   Future<void> onLoad() async {
     await GameAudio.initialize();
+    await _loadSavedPreferences();
+    _setupCamera();
+    _setupBackdrop();
+    _setupScoreHud();
+    _setupPedestal();
+  }
 
+  Future<void> _loadSavedPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     highScore = prefs.getInt(_highScoreKey) ?? 0;
     soundEnabled = prefs.getBool(_soundEnabledKey) ?? true;
     soundEnabledNotifier.value = soundEnabled;
     GameAudio.soundEnabled = soundEnabled;
+  }
 
+  void _setupCamera() {
     camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
+  }
 
-    // In-game retro background with sky, distant towers, clouds, crane, and status HUD
+  void _setupBackdrop() {
     camera.backdrop.add(GameBackgroundComponent());
+  }
 
-    // Retro SCORE display matching inspiration image status bar
+  void _setupScoreHud() {
     scoreText = TextComponent(
       text: 'SCORE 000',
       textRenderer: TextPaint(
@@ -114,9 +125,56 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     );
 
     camera.viewport.add(scoreText);
+  }
 
-    // Stone masonry pedestal platform where the stack is built
+  void _setupPedestal() {
     world.add(PedestalPlatform(groundY: groundY));
+  }
+
+  void _clearActiveOverlays() {
+    overlays.remove('StartScreen');
+    overlays.remove('Pause');
+    overlays.remove('Menu');
+    overlays.remove('GameOver');
+  }
+
+  void _resetCameraTransform() {
+    camera.stop();
+    camera.viewfinder.removeAll(
+      camera.viewfinder.children.whereType<Effect>().toList(),
+    );
+    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
+  }
+
+  void _resetRunState() {
+    gameOver = false;
+    hasPerformedFirstDrop = false;
+    showDropHintNotifier.value = true;
+    score = 0;
+    scoreText.text = 'SCORE 000';
+    lastBox = null;
+  }
+
+  void _prepareNewRun() {
+    _clearActiveOverlays();
+    clearGameplayComponents();
+    _resetRunState();
+    _resetCameraTransform();
+
+    stack = GameStack();
+    world.add(stack);
+    spawnFirstBox();
+    processLifecycleEvents();
+
+    if (paused) {
+      resumeEngine();
+    }
+
+    GameAudio.resetSfxPools();
+
+    if (soundEnabled) {
+      GameAudio.playCheerfulBgm(forceRestart: true);
+    }
   }
 
   /// Safely removes all active Box, Pendulum, GameStack, and temporary gameplay components from world,
@@ -239,46 +297,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
 
   /// Starts or restarts gameplay from the Title / Start Screen or Game Over.
   void startGame() {
-    overlays.remove('StartScreen');
-    overlays.remove('Pause');
-    overlays.remove('Menu');
-    overlays.remove('GameOver');
-
-    // 1. Remove all previous run gameplay components
-    clearGameplayComponents();
-
-    // 2. Reset gameplay state
-    gameOver = false;
-    hasPerformedFirstDrop = false;
-    showDropHintNotifier.value = true;
-    score = 0;
-    scoreText.text = 'SCORE 000';
-    lastBox = null;
-
-    // 3. Reset camera and cancel any camera effects
-    camera.stop();
-    camera.viewfinder.removeAll(
-      camera.viewfinder.children.whereType<Effect>().toList(),
-    );
-    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
-
-    // 4. Exactly one owner creates the initial gameplay objects
-    stack = GameStack();
-    world.add(stack);
-    spawnFirstBox();
-
-    // 5. Synchronously process lifecycle events so tree is ready
-    processLifecycleEvents();
-
-    if (paused) {
-      resumeEngine();
-    }
-
-    GameAudio.resetSfxPools();
-
-    if (soundEnabled) {
-      GameAudio.playCheerfulBgm(forceRestart: true);
-    }
+    _prepareNewRun();
   }
 
   /// Exits back to the Game Home / Start Screen when physical END / Power key is pressed.
@@ -293,12 +312,7 @@ class MyGame extends FlameGame<MyWorld> with HasCollisionDetection {
     pauseEngine();
     GameAudio.stopBgm();
 
-    camera.stop();
-    camera.viewfinder.removeAll(
-      camera.viewfinder.children.whereType<Effect>().toList(),
-    );
-    camera.viewfinder.position = Vector2(virtualWidth / 2, virtualHeight / 2);
-
+    _resetCameraTransform();
     clearGameplayComponents();
 
     currentBox = null;

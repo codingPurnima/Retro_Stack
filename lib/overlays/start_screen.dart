@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import '../game/my_game.dart';
 import '../theme/colors.dart';
+import 'start_screen_play_button.dart';
 
 /// Retro Title / Start Screen overlay.
 ///
@@ -14,18 +15,13 @@ import '../theme/colors.dart';
 class StartScreen extends StatefulWidget {
   final MyGame game;
 
-  const StartScreen({
-    super.key,
-    required this.game,
-  });
+  const StartScreen({super.key, required this.game});
 
   @override
   State<StartScreen> createState() => _StartScreenState();
 }
 
 class _StartScreenState extends State<StartScreen> {
-  bool _isPressed = false;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -37,10 +33,7 @@ class _StartScreenState extends State<StartScreen> {
         decoration: BoxDecoration(
           color: RetroColors.lcdLight,
           borderRadius: BorderRadius.circular(4.0),
-          border: Border.all(
-            color: RetroColors.lcdDarkest,
-            width: 2.0,
-          ),
+          border: Border.all(color: RetroColors.lcdDarkest, width: 2.0),
           boxShadow: [
             BoxShadow(
               color: RetroColors.lcdDarkest.withValues(alpha: 0.35),
@@ -81,11 +74,7 @@ class _StartScreenState extends State<StartScreen> {
             const SizedBox(height: 8.0),
 
             // Pixel Divider
-            Container(
-              height: 1.5,
-              width: 120.0,
-              color: RetroColors.lcdDark,
-            ),
+            Container(height: 1.5, width: 120.0, color: RetroColors.lcdDark),
             const SizedBox(height: 10.0),
 
             // High Score Banner
@@ -115,49 +104,7 @@ class _StartScreenState extends State<StartScreen> {
             const SizedBox(height: 14.0),
 
             // Play / Start Action Button
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (_) => setState(() => _isPressed = true),
-              onTapUp: (_) {
-                setState(() => _isPressed = false);
-                widget.game.startGame();
-              },
-              onTapCancel: () => setState(() => _isPressed = false),
-              child: Transform.translate(
-                offset: Offset(0.0, _isPressed ? 1.5 : 0.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 7.0),
-                  decoration: BoxDecoration(
-                    color: _isPressed ? RetroColors.lcdDark : RetroColors.lcdDarkest,
-                    borderRadius: BorderRadius.circular(3.0),
-                    border: Border.all(
-                      color: RetroColors.lcdDarkest,
-                      width: 1.5,
-                    ),
-                    boxShadow: _isPressed
-                        ? []
-                        : [
-                            BoxShadow(
-                              color: RetroColors.lcdDarkest.withValues(alpha: 0.4),
-                              offset: const Offset(0.0, 1.5),
-                              blurRadius: 0.0,
-                            ),
-                          ],
-                  ),
-                  child: const Text(
-                    'PRESS OK TO PLAY',
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                      color: RetroColors.lcdLight,
-                      fontFamily: 'monospace',
-                      height: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            StartScreenPlayButton(onPressed: widget.game.startGame),
           ],
         ),
       ),

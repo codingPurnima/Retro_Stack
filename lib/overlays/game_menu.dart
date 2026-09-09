@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import '../game/my_game.dart';
 import '../theme/colors.dart';
+import 'game_menu_back_button.dart';
+import 'game_menu_item.dart';
 
 /// Retro late-2000s feature phone popup options menu overlay.
 ///
@@ -14,10 +16,7 @@ import '../theme/colors.dart';
 class GameMenu extends StatefulWidget {
   final MyGame game;
 
-  const GameMenu({
-    super.key,
-    required this.game,
-  });
+  const GameMenu({super.key, required this.game});
 
   @override
   State<GameMenu> createState() => _GameMenuState();
@@ -86,10 +85,7 @@ class _GameMenuState extends State<GameMenu> {
         decoration: BoxDecoration(
           color: RetroColors.lcdLight,
           borderRadius: BorderRadius.circular(4.0),
-          border: Border.all(
-            color: RetroColors.lcdDarkest,
-            width: 2.0,
-          ),
+          border: Border.all(color: RetroColors.lcdDarkest, width: 2.0),
           boxShadow: [
             BoxShadow(
               color: RetroColors.lcdDarkest.withValues(alpha: 0.35),
@@ -122,23 +118,25 @@ class _GameMenuState extends State<GameMenu> {
             const SizedBox(height: 6.0),
 
             // Pixel Divider
-            Container(
-              height: 1.5,
-              color: RetroColors.lcdDark,
-            ),
+            Container(height: 1.5, color: RetroColors.lcdDark),
             const SizedBox(height: 8.0),
 
             // Item 0: Sound Toggle
             ValueListenableBuilder<bool>(
               valueListenable: widget.game.soundEnabledNotifier,
               builder: (context, soundEnabled, _) {
-                return _buildMenuItem(
+                return GameMenuItem(
                   index: 0,
+                  selectedIndex: _selectedIndex,
                   label: 'Sound',
                   value: soundEnabled ? 'ON' : 'OFF',
                   valueColor: soundEnabled
-                      ? (_selectedIndex == 0 ? RetroColors.lcdLight : RetroColors.lcdDarkest)
-                      : (_selectedIndex == 0 ? const Color(0xFFFF8A80) : const Color(0xFFC62828)),
+                      ? (_selectedIndex == 0
+                            ? RetroColors.lcdLight
+                            : RetroColors.lcdDarkest)
+                      : (_selectedIndex == 0
+                            ? const Color(0xFFFF8A80)
+                            : const Color(0xFFC62828)),
                   onTap: () {
                     setState(() => _selectedIndex = 0);
                     widget.game.toggleSound();
@@ -149,8 +147,9 @@ class _GameMenuState extends State<GameMenu> {
             const SizedBox(height: 4.0),
 
             // Item 1: Difficulty
-            _buildMenuItem(
+            GameMenuItem(
               index: 1,
+              selectedIndex: _selectedIndex,
               label: 'Difficulty',
               value: 'NORMAL',
               onTap: () {
@@ -160,8 +159,9 @@ class _GameMenuState extends State<GameMenu> {
             const SizedBox(height: 4.0),
 
             // Item 2: High Score
-            _buildMenuItem(
+            GameMenuItem(
               index: 2,
+              selectedIndex: _selectedIndex,
               label: 'High Score',
               value: '${widget.game.highScore}',
               onTap: () {
@@ -171,96 +171,15 @@ class _GameMenuState extends State<GameMenu> {
             const SizedBox(height: 10.0),
 
             // Item 3: Close / Back Button
-            _buildCloseButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuItem({
-    required int index,
-    required String label,
-    required String value,
-    Color? valueColor,
-    required VoidCallback onTap,
-  }) {
-    final isSelected = _selectedIndex == index;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
-        decoration: BoxDecoration(
-          color: isSelected ? RetroColors.lcdDarkest : const Color(0x00000000),
-          borderRadius: BorderRadius.circular(2.0),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                  color: isSelected ? RetroColors.lcdLight : RetroColors.lcdDarkest,
-                  fontFamily: 'monospace',
-                  height: 1.0,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6.0),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.8,
-                color: valueColor ?? (isSelected ? RetroColors.lcdLight : RetroColors.lcdDarkest),
-                fontFamily: 'monospace',
-                height: 1.0,
-              ),
+            GameMenuBackButton(
+              selectedIndex: _selectedIndex,
+              index: 3,
+              onTap: () {
+                setState(() => _selectedIndex = 3);
+                widget.game.toggleMenu();
+              },
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCloseButton() {
-    final isSelected = _selectedIndex == 3;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() => _selectedIndex = 3);
-        widget.game.toggleMenu();
-      },
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 6.0),
-        decoration: BoxDecoration(
-          color: isSelected ? RetroColors.lcdDarkest : const Color(0x00000000),
-          borderRadius: BorderRadius.circular(3.0),
-          border: Border.all(
-            color: RetroColors.lcdDarkest,
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          'BACK',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.0,
-            color: isSelected ? RetroColors.lcdLight : RetroColors.lcdDarkest,
-            fontFamily: 'monospace',
-            height: 1.0,
-          ),
         ),
       ),
     );

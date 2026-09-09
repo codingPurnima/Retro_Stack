@@ -1,62 +1,20 @@
 import 'package:flutter/widgets.dart';
+
 import '../theme/colors.dart';
 import '../theme/dimensions.dart';
 
-/// Soft keys row widget for the feature phone shell (Section 17).
-///
-/// Features left and right action keys with tactile press feedback.
-class SoftKeys extends StatelessWidget {
-  /// Label for the left soft key (default 'MENU').
-  final String leftLabel;
-
-  /// Label for the right soft key (default 'SELECT').
-  final String rightLabel;
-
-  /// Callback when a soft key is tapped.
-  final ValueChanged<String>? onKeyPressed;
-
-  const SoftKeys({
-    super.key,
-    this.leftLabel = 'MENU',
-    this.rightLabel = 'SELECT',
-    this.onKeyPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: RetroDimensions.softKeysRowWidth,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _SoftKeyButton(
-            label: leftLabel,
-            onTap: () => onKeyPressed?.call(leftLabel),
-          ),
-          _SoftKeyButton(
-            label: rightLabel,
-            onTap: () => onKeyPressed?.call(rightLabel),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SoftKeyButton extends StatefulWidget {
+/// Tactile soft-key button used by the phone's action row.
+class SoftKeyButton extends StatefulWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _SoftKeyButton({
-    required this.label,
-    required this.onTap,
-  });
+  const SoftKeyButton({super.key, required this.label, required this.onTap});
 
   @override
-  State<_SoftKeyButton> createState() => _SoftKeyButtonState();
+  State<SoftKeyButton> createState() => _SoftKeyButtonState();
 }
 
-class _SoftKeyButtonState extends State<_SoftKeyButton> {
+class _SoftKeyButtonState extends State<SoftKeyButton> {
   bool _isPressed = false;
 
   @override

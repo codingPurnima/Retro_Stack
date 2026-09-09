@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:retro_stack_frontend/phone/icons/retro_play_pause_icon.dart';
 import '../game/my_game.dart';
 import '../theme/colors.dart';
+import 'pause_overlay_resume_button.dart';
 
 /// Retro Pause banner overlay.
 ///
@@ -17,8 +18,6 @@ class PauseOverlay extends StatefulWidget {
 }
 
 class _PauseOverlayState extends State<PauseOverlay> {
-  bool _isPressed = false;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -67,7 +66,10 @@ class _PauseOverlayState extends State<PauseOverlay> {
                   TextSpan(text: 'Press '),
                   WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
-                    child: RetroPlayPauseIcon(size: 10, color: RetroColors.lcdDark,),
+                    child: RetroPlayPauseIcon(
+                      size: 10,
+                      color: RetroColors.lcdDark,
+                    ),
                   ),
                   TextSpan(text: '  to Resume'),
                 ],
@@ -84,56 +86,7 @@ class _PauseOverlayState extends State<PauseOverlay> {
             const SizedBox(height: 12.0),
 
             // Resume button
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapDown: (_) => setState(() => _isPressed = true),
-              onTapUp: (_) {
-                setState(() => _isPressed = false);
-                widget.game.resumeGame();
-              },
-              onTapCancel: () => setState(() => _isPressed = false),
-              child: Transform.translate(
-                offset: Offset(0.0, _isPressed ? 1.5 : 0.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0,
-                    vertical: 6.0,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isPressed
-                        ? RetroColors.lcdDark
-                        : RetroColors.lcdDarkest,
-                    borderRadius: BorderRadius.circular(3.0),
-                    border: Border.all(
-                      color: RetroColors.lcdDarkest,
-                      width: 1.5,
-                    ),
-                    boxShadow: _isPressed
-                        ? []
-                        : [
-                            BoxShadow(
-                              color: RetroColors.lcdDarkest.withValues(
-                                alpha: 0.4,
-                              ),
-                              offset: const Offset(0.0, 1.5),
-                              blurRadius: 0.0,
-                            ),
-                          ],
-                  ),
-                  child: const Text(
-                    'RESUME',
-                    style: TextStyle(
-                      fontSize: 11.0,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.0,
-                      color: RetroColors.lcdLight,
-                      fontFamily: 'monospace',
-                      height: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            PauseOverlayResumeButton(onPressed: widget.game.resumeGame),
           ],
         ),
       ),
