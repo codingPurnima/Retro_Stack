@@ -104,12 +104,11 @@ class GameAudio {
     ]);
   }
 
-  // Centralized volume levels (SFX scaled ~1.4x from base levels for clear balance over BGM)
-  static const double boxReleaseVolume = 0.63; // was 0.45 (0.45 * 1.4 = 0.63)
-  static const double boxLandVolume = 0.70;    // was 0.50 (0.50 * 1.4 = 0.70)
-  static const double gameOverVolume = 0.77;   // was 0.55 (0.55 * 1.4 = 0.77)
-  static const double highScoreVolume = 0.77;  // was 0.55 (0.55 * 1.4 = 0.77)
-  static const double bgmVolume = 0.25;        // continuous background music volume
+  static const double boxReleaseVolume = 0.63; 
+  static const double boxLandVolume = 0.80;    
+  static const double gameOverVolume = 0.95;   
+  static const double highScoreVolume = 0.95;  
+  static const double bgmVolume = 0.20;        
 
   /// Plays short "tik" release sound when box is dropped from pendulum.
   static void playBoxRelease() {
