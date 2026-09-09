@@ -6,20 +6,25 @@ abstract final class RetroDimensions {
   // Reference Design Space (Section 4, 32)
   // ---------------------------------------------------------------------------
 
-  /// Logical design width in logical pixels.
-  static const double designWidth = 310.0;
+  /// Logical design width in logical pixels matching phone body width.
+  static const double designWidth = 292.0;
 
-  /// Logical design height in logical pixels.
-  static const double designHeight = 660.0;
+  /// Logical design height in logical pixels matching phone body height.
+  static const double designHeight = 540.0;
 
-  /// Logical aspect ratio of the phone shell (~0.48:1).
+  /// Logical aspect ratio of the phone shell (~0.54:1).
   static const double aspectRatio = designWidth / designHeight;
+
+  /// Tunable scale factor determining the fraction of available vertical space
+  /// that the complete phone frame should occupy (default: 0.94 = 94%).
+  /// Leaves balanced top/bottom spacing while maximizing physical screen usage.
+  static const double phoneScaleFactor = 0.87;
 
   // ---------------------------------------------------------------------------
   // Phone Body (Section 5)
   // ---------------------------------------------------------------------------
 
-  /// Width of the physical phone body (~94% of design width).
+  /// Width of the physical phone body.
   static const double phoneBodyWidth = 292.0;
 
   /// Height of the physical phone body.
@@ -144,9 +149,9 @@ abstract final class RetroDimensions {
   static const double navArrowSize = 10.0;
 
   /// Scale factor for the physical phone controls / keypad region (Section 18).
-  /// Conservatively scales the D-pad and flanking buttons for physical device usability
-  /// while preserving aspect ratio, key shapes, centering, and alignment.
-  static const double controlsScale = 1.15;
+  /// Defaults to 1.0 (original 1:1 design proportions) since the complete phone frame
+  /// is now scaled up to occupy the available vertical space.
+  static const double controlsScale = 1.0;
 
   // ---------------------------------------------------------------------------
   // Numeric Keypad & Keys (Sections 19, 20, 21)
