@@ -1220,4 +1220,62 @@ void main() {
       expect(pressedKeys, contains('OK'));
     },
   );
+
+  testWidgets(
+    'PhoneShell scales to fill vertical space proportionally maintaining exact aspect ratio',
+    (WidgetTester tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Test 1: On a tall screen (Size(600, 1000)), height reaches full phoneScaleFactor (94%)
+      // and width is scaled proportionally by aspectRatio.
+      tester.view.physicalSize = const Size(600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: PhoneShell(),
+        ),
+      );
+      await tester.pump();
+
+      final tallSizedBox = tester.widget<SizedBox>(
+        find.descendant(
+          of: find.byType(PhoneShell),
+          matching: find.byType(SizedBox),
+        ).first,
+      );
+
+      expect(tallSizedBox.height, closeTo(1000.0 * RetroDimensions.phoneScaleFactor, 0.01));
+      expect(tallSizedBox.width, closeTo(1000.0 * RetroDimensions.phoneScaleFactor * RetroDimensions.aspectRatio, 0.01));
+      expect(tallSizedBox.width! / tallSizedBox.height!, closeTo(RetroDimensions.aspectRatio, 0.001));
+
+      // Test 2: On an ultra-narrow screen (Size(320, 800)), width clamp activates
+      // (w > availableWidth * 0.94) to prevent horizontal overflow while preserving exact aspect ratio.
+      tester.view.physicalSize = const Size(320, 800);
+
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: PhoneShell(),
+        ),
+      );
+      await tester.pump();
+
+      final narrowSizedBox = tester.widget<SizedBox>(
+        find.descendant(
+          of: find.byType(PhoneShell),
+          matching: find.byType(SizedBox),
+        ).first,
+      );
+
+      expect(narrowSizedBox.width, closeTo(320.0 * RetroDimensions.phoneScaleFactor, 0.01));
+      expect(narrowSizedBox.width! / narrowSizedBox.height!, closeTo(RetroDimensions.aspectRatio, 0.001));
+      expect(narrowSizedBox.height, closeTo((320.0 * RetroDimensions.phoneScaleFactor) / RetroDimensions.aspectRatio, 0.01));
+    },
+  );
 }
+
