@@ -13,7 +13,7 @@ class AmbientBackdropPainter extends CustomPainter {
     final h = size.height;
 
     // 1. Atmospheric sky gradient (top to horizon)
-    final horizonY = h * 0.86;
+    final horizonY = h * 0.92;
     final skyPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
@@ -65,19 +65,19 @@ class AmbientBackdropPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     // Far Left Citadel Silhouette
-    final leftX = w * 0.04;
+    final leftX = w * 0.03;
     drawPixelTower(
       canvas,
       baseX: leftX,
       groundY: groundY,
       width: 44.0,
-      height: 220.0,
+      height: 250.0,
       spireHeight: 45.0,
       paint: paint,
     );
 
     // Far Right Fortress Silhouette
-    final rightX = w * 0.88;
+    final rightX = w * 0.91;
     drawPixelTower(
       canvas,
       baseX: rightX,
@@ -95,19 +95,19 @@ class AmbientBackdropPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     // Near Left Tower
-    final leftX = w * 0.11;
+    final leftX = w * 0.04;
     drawPixelTower(
       canvas,
       baseX: leftX,
       groundY: groundY,
       width: 34.0,
-      height: 170.0,
+      height: 210.0,
       spireHeight: 30.0,
       paint: paint,
     );
 
     // Near Right Tower
-    final rightX = w * 0.81;
+    final rightX = w * 0.95;
     drawPixelTower(
       canvas,
       baseX: rightX,
@@ -125,16 +125,16 @@ class AmbientBackdropPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     // Cloud cluster 1 (Upper Left)
-    drawCloud(canvas, x: w * 0.08, y: groundY * 0.16, scale: 1.0, paint: paint);
+    drawCloud(canvas, x: w * 0.08, y: groundY * 0.10, scale: 1.0, paint: paint);
 
     // Cloud cluster 2 (Mid Left)
-    drawCloud(canvas, x: w * 0.02, y: groundY * 0.38, scale: 0.75, paint: paint);
+    drawCloud(canvas, x: w * 0.02, y: groundY * 0.31, scale: 0.75, paint: paint);
 
     // Cloud cluster 3 (Upper Right)
-    drawCloud(canvas, x: w * 0.76, y: groundY * 0.20, scale: 1.1, paint: paint);
+    drawCloud(canvas, x: w * 0.80, y: groundY * 0.09, scale: 1.1, paint: paint);
 
     // Cloud cluster 4 (Mid Right)
-    drawCloud(canvas, x: w * 0.84, y: groundY * 0.44, scale: 0.7, paint: paint);
+    drawCloud(canvas, x: w * 0.91, y: groundY * 0.35, scale: 0.7, paint: paint);
   }
 
   void _drawPhoneGroundShadow(Canvas canvas, double w, double groundY) {
