@@ -1,10 +1,6 @@
-/// Centralized geometric dimensions and layout metrics for Retro Stack.
-///
-/// Values adhere strictly to Section 4, 5, 8, 19, 31, and 32 of `docs/design.md`.
 abstract final class RetroDimensions {
-  // ---------------------------------------------------------------------------
-  // Reference Design Space (Section 4, 32)
-  // ---------------------------------------------------------------------------
+
+  // Reference Design Space 
 
   /// Logical design width in logical pixels matching phone body width.
   static const double designWidth = 292.0;
@@ -16,19 +12,17 @@ abstract final class RetroDimensions {
   static const double aspectRatio = designWidth / designHeight;
 
   /// Tunable scale factor determining the fraction of available vertical space
-  /// that the complete phone frame should occupy (default: 0.94 = 94%).
+  /// that the complete phone frame should occupy (default: 0.91 = 91%).
   /// Leaves balanced top/bottom spacing while maximizing physical screen usage.
-  static const double phoneScaleFactor = 0.87;
+  static const double phoneScaleFactor = 0.91;
 
-  // ---------------------------------------------------------------------------
-  // Phone Body (Section 5)
-  // ---------------------------------------------------------------------------
-
+  // Phone Body 
+  
   /// Width of the physical phone body.
   static const double phoneBodyWidth = 292.0;
 
   /// Height of the physical phone body.
-  static const double phoneBodyHeight = 540.0;
+  static const double phoneBodyHeight = 590.0;
 
   /// Outer corner radius of the molded phone body.
   static const double phoneCornerRadius = 28.0;
@@ -57,9 +51,7 @@ abstract final class RetroDimensions {
   /// Exposed bottom slider chin height.
   static const double sliderChinHeight = 48.0;
 
-  // ---------------------------------------------------------------------------
-  // Speaker Section (Section 7)
-  // ---------------------------------------------------------------------------
+  // Speaker Section
 
   /// Top padding from phone top edge to speaker.
   static const double phoneTopPadding = 14.0;
@@ -82,9 +74,7 @@ abstract final class RetroDimensions {
   /// Margin between speaker and LCD frame.
   static const double speakerMarginBottom = 12.0;
 
-  // ---------------------------------------------------------------------------
-  // LCD Screen & Bezel Frame (Section 8)
-  // ---------------------------------------------------------------------------
+  // LCD Screen & Bezel Frame 
 
   /// Overall outer width of the dark LCD bezel frame (~73% of phone width).
   static const double lcdFrameWidth = 230.0;
@@ -107,9 +97,7 @@ abstract final class RetroDimensions {
   /// Space below LCD frame before soft keys row.
   static const double lcdMarginBottom = 12.0;
 
-  // ---------------------------------------------------------------------------
-  // Soft Keys (Section 17)
-  // ---------------------------------------------------------------------------
+  // Soft Keys 
 
   /// Width of the soft keys row matching LCD width.
   static const double softKeysRowWidth = 220.0;
@@ -129,9 +117,7 @@ abstract final class RetroDimensions {
   /// Margin below soft keys row before navigation D-pad.
   static const double softKeyMarginBottom = 10.0;
 
-  // ---------------------------------------------------------------------------
-  // Navigation D-Pad Control (Section 18)
-  // ---------------------------------------------------------------------------
+  // Navigation D-Pad Control 
 
   /// Diameter/size of the navigation control circle.
   static const double navPadSize = 64.0;
@@ -148,14 +134,12 @@ abstract final class RetroDimensions {
   /// Size of directional arrows in navigation control.
   static const double navArrowSize = 10.0;
 
-  /// Scale factor for the physical phone controls / keypad region (Section 18).
+  /// Scale factor for the physical phone controls / keypad region 
   /// Defaults to 1.0 (original 1:1 design proportions) since the complete phone frame
   /// is now scaled up to occupy the available vertical space.
   static const double controlsScale = 1.0;
 
-  // ---------------------------------------------------------------------------
-  // Numeric Keypad & Keys (Sections 19, 20, 21)
-  // ---------------------------------------------------------------------------
+  // Numeric Keypad & Keys 
 
   /// Overall width of the 3x4 numeric keypad.
   static const double keypadWidth = 224.0;
@@ -193,9 +177,7 @@ abstract final class RetroDimensions {
   /// Key press/release tactile animation duration (Section 21).
   static const Duration keyPressDuration = Duration(milliseconds: 70);
 
-  // ---------------------------------------------------------------------------
   // LCD Standby / Preview Typography & Metrics
-  // ---------------------------------------------------------------------------
 
   /// Font size for LCD standby title.
   static const double lcdPlaceholderTitleSize = 13.0;
